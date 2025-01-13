@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'customer_menu_detail_screen.dart'; // Import layar detail kategori menu
 import 'customer_profile_screen.dart'; // Import halaman profil
+import 'customer_order_status_screen.dart'; // Import layar status pesanan
 
 class CustomerHomeScreen extends StatefulWidget {
   @override
@@ -144,7 +145,25 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         ],
         currentIndex: 0,
         onTap: (index) {
-          // Navigasi antar halaman jika diperlukan
+          if (index == 1) {
+            // Navigasi ke layar CustomerOrderStatusScreen
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CustomerOrderStatusScreen(
+                    buyerId: FirebaseAuth.instance.currentUser!.uid),
+              ),
+            );
+          } else if (index == 3) {
+            // Navigasi ke layar profil
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CustomerProfileScreen(
+                    uid: FirebaseAuth.instance.currentUser!.uid),
+              ),
+            );
+          }
         },
       ),
     );

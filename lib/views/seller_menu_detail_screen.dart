@@ -151,70 +151,12 @@ class _SellerMenuDetailScreenState extends State<SellerMenuDetailScreen> {
                   return const Center(child: Text('Tidak ada menu tersedia.'));
                 } else {
                   final menus = snapshot.data!;
-                  return ListView.separated(
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(16),
                     itemCount: menus.length,
-                    separatorBuilder: (context, index) => const Divider(color: Colors.grey),
                     itemBuilder: (context, index) {
                       final menu = menus[index];
-                      final isSelected = _selectedMenuIds.contains(menu.id);
-                      return ListTile(
-                        leading: _isDeleteMode
-                            ? Checkbox(
-                                value: isSelected,
-                                onChanged: (value) {
-                                  setState(() {
-                                    if (value == true) {
-                                      _selectedMenuIds.add(menu.id);
-                                    } else {
-                                      _selectedMenuIds.remove(menu.id);
-                                    }
-                                  });
-                                },
-                              )
-                            : CircleAvatar(
-                                backgroundImage: NetworkImage(menu.imageUrl),
-                                radius: 30,
-                              ),
-                        title: Text(
-                          menu.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Stok: ${menu.stock}', style: const TextStyle(fontSize: 14)),
-                            Text(
-                              'Rp ${menu.price.toStringAsFixed(0)}',
-                              style: const TextStyle(fontSize: 14, color: Colors.green),
-                            ),
-                          ],
-                        ),
-                        trailing: _isDeleteMode
-                            ? null
-                            : IconButton(
-                                icon: const Icon(Icons.edit, color: Colors.grey),
-                                onPressed: () {
-                                  _editMenu(menu);
-                                },
-                              ),
-                        onTap: _isDeleteMode
-                            ? () {
-                                setState(() {
-                                  if (isSelected) {
-                                    _selectedMenuIds.remove(menu.id);
-                                  } else {
-                                    _selectedMenuIds.add(menu.id);
-                                  }
-                                });
-                              }
-                            : null,
-                        onLongPress: () {
-                          setState(() {
-                            _isDeleteMode = true;
-                            _selectedMenuIds.add(menu.id);
-                          });
-                        },
-                      );
+                      return _buildMenuItem(menu);
                     },
                   );
                 }
@@ -228,7 +170,6 @@ class _SellerMenuDetailScreenState extends State<SellerMenuDetailScreen> {
               right: 16,
               child: Container(
                 width: 137,
-                height: 234,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
@@ -241,7 +182,6 @@ class _SellerMenuDetailScreenState extends State<SellerMenuDetailScreen> {
                   ],
                 ),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
                     ListTile(
                       leading: const Icon(Icons.add, color: Color(0xFFFFA31D)),
@@ -284,9 +224,67 @@ class _SellerMenuDetailScreenState extends State<SellerMenuDetailScreen> {
       ),
     );
   }
+
+  Widget _buildMenuItem(MenuModel menu) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(vertical: 8.0),
+      leading: CircleAvatar(
+        radius: 25,
+        backgroundImage: NetworkImage(menu.imageUrl),
+        onBackgroundImageError: (_, __) => const Icon(Icons.error, color: Colors.red),
+      ),
+      title: Text(
+        menu.name,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Stok: ${menu.stock}'),
+          Text('Rp ${menu.price.toStringAsFixed(0)}', style: const TextStyle(color: Colors.green)),
+        ],
+      ),
+      trailing: _isDeleteMode
+          ? Checkbox(
+              value: _selectedMenuIds.contains(menu.id),
+              onChanged: (value) {
+                setState(() {
+                  if (value == true) {
+                    _selectedMenuIds.add(menu.id);
+                  } else {
+                    _selectedMenuIds.remove(menu.id);
+                  }
+                });
+              },
+            )
+          : IconButton(
+              icon: const Icon(Icons.edit, color: Colors.grey),
+              onPressed: () => _editMenu(menu),
+            ),
+      onTap: _isDeleteMode
+          ? () {
+              setState(() {
+                if (_selectedMenuIds.contains(menu.id)) {
+                  _selectedMenuIds.remove(menu.id);
+                } else {
+                  _selectedMenuIds.add(menu.id);
+                }
+              });
+            }
+          : null,
+      onLongPress: () {
+        setState(() {
+          _isDeleteMode = true;
+          _selectedMenuIds.add(menu.id);
+        });
+      },
+    );
+  }
 }
 
-// Dialog untuk mengedit menu
 class _EditMenuDialog extends StatelessWidget {
   final MenuModel menu;
 

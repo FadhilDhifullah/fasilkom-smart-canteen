@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import '../viewmodels/customer_profile_viewmodel.dart';
 import '../models/customer_model.dart';
@@ -16,6 +18,11 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
   Customer? customerData;
   bool isLoading = true;
 
+  final TextEditingController _nimController = TextEditingController();
+  final TextEditingController _provinceController = TextEditingController();
+  final TextEditingController _cityController = TextEditingController();
+  final TextEditingController _subdistrictController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -27,6 +34,10 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
       final data = await _viewModel.fetchCustomerData(widget.uid);
       setState(() {
         customerData = data;
+        _nimController.text = data?.nomorIndukMahasiswa ?? '';
+        _provinceController.text = data?.address?['province'] ?? '';
+        _cityController.text = data?.address?['city'] ?? '';
+        _subdistrictController.text = data?.address?['subdistrict'] ?? '';
         isLoading = false;
       });
     } catch (e) {
@@ -36,6 +47,50 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
       setState(() {
         isLoading = false;
       });
+    }
+  }
+
+  Future<void> _updateProfile() async {
+    try {
+      await _viewModel.updateCustomerData(widget.uid, {
+        'nomorIndukMahasiswa': _nimController.text,
+        'address': {
+          'province': _provinceController.text,
+          'city': _cityController.text,
+          'subdistrict': _subdistrictController.text,
+        },
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Data berhasil diperbarui')),
+      );
+      await _loadCustomerData();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal memperbarui data: $e')),
+      );
+    }
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      try {
+        final imageUrl = await _viewModel.uploadProfilePicture(
+          widget.uid,
+          File(pickedFile.path),
+        );
+        await _viewModel.updateCustomerData(widget.uid, {'profilePicture': imageUrl});
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gambar profil berhasil diperbarui')),
+        );
+        await _loadCustomerData();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal mengunggah gambar: $e')),
+        );
+      }
     }
   }
 
@@ -53,83 +108,39 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
       );
     }
 
-    final fullName = customerData?.fullName ?? 'Nama tidak tersedia';
-    final nameParts = fullName.split(' ');
-    final firstName = nameParts.length > 1
-        ? nameParts.sublist(0, nameParts.length - 1).join(' ')
-        : nameParts.isNotEmpty
-            ? nameParts[0]
-            : '';
-    final lastName = nameParts.length > 1 ? nameParts.last : '';
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF114232),
-        title: const Text(
-          'Akun',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
+        title: const Text('Akun', style: TextStyle(color: Colors.white)),
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             // Foto Profil
-            CircleAvatar(
-              radius: 50,
-              backgroundImage: NetworkImage(
-                customerData?.toMap()['profilePicture'] ?? 'https://via.placeholder.com/150',
+            GestureDetector(
+              onTap: _pickAndUploadImage,
+              child: CircleAvatar(
+                radius: 50,
+                backgroundImage: NetworkImage(
+                  customerData?.profilePicture ?? 'https://via.placeholder.com/150',
+                ),
+                child: const Icon(Icons.edit, color: Colors.white, size: 24),
               ),
             ),
             const SizedBox(height: 16),
 
-            // Nama
-            Text(
-              firstName,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            if (lastName.isNotEmpty)
-              Text(
-                lastName,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
+            // NIM dan Alamat
+            _buildEditableField('NIM', _nimController),
+            _buildEditableField('Provinsi', _provinceController),
+            _buildEditableField('Kota', _cityController),
+            _buildEditableField('Kecamatan', _subdistrictController),
             const SizedBox(height: 24),
 
-            // Informasi Pribadi
-            _buildInfoContainer(
-              'Informasi Pribadi',
-              {
-                'Nama Awal': firstName,
-                'Nama Akhir': lastName,
-                'Email': customerData?.email ?? '-',
-                'Nomor Telepon': customerData?.phoneNumber ?? '-',
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Alamat
-            _buildInfoContainer(
-              'Alamat',
-              {
-                'Provinsi': customerData?.address?['province'] ?? '-',
-                'Kota': customerData?.address?['city'] ?? '-',
-                'Kecamatan': customerData?.address?['subdistrict'] ?? '-',
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // Tombol Ubah Kata Sandi
+            // Tombol Simpan
             ElevatedButton(
-              onPressed: () {
-                // Aksi untuk ubah kata sandi
-              },
+              onPressed: _updateProfile,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFFA31D),
                 fixedSize: const Size(200, 40),
@@ -137,7 +148,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text('Ubah Kata Sandi'),
+              child: const Text('Simpan Perubahan'),
             ),
           ],
         ),
@@ -145,39 +156,15 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
     );
   }
 
-  Widget _buildInfoContainer(String title, Map<String, String> data) {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(8.0),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          ...data.entries.map((entry) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Text(entry.key, style: const TextStyle(fontSize: 14)),
-                  ),
-                  Expanded(
-                    flex: 5,
-                    child: Text(entry.value, style: const TextStyle(fontSize: 14)),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-        ],
+  Widget _buildEditableField(String label, TextEditingController controller) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
       ),
     );
   }

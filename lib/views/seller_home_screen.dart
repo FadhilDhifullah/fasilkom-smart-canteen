@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../viewmodels/seller_home_viewmodel.dart';
-import 'seller_outlet_screen.dart';
+
 import 'seller_menu_category_screen.dart';
+import 'seller_sales_report_screen.dart';
 import 'seller_payment_methods_screen.dart';
+import 'seller_stock_screen.dart';
+
 
 class SellerHomeScreen extends StatefulWidget {
   final String uid;
@@ -18,25 +21,27 @@ class _SellerHomeScreenState extends State<SellerHomeScreen> {
   Map<String, dynamic>? homeData;
   bool isLoading = true;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadHomeData();
-  }
+ @override
+void initState() {
+  super.initState();
+  _loadHomeData();
+}
 
-  Future<void> _loadHomeData() async {
-    try {
-      homeData = await _homeViewModel.fetchSellerHomeData(widget.uid);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memuat data: $e')),
-      );
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
+Future<void> _loadHomeData() async {
+  try {
+    homeData = await _homeViewModel.fetchSellerHomeData(widget.uid);
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Gagal memuat data: $e')),
+    );
+  } finally {
+    setState(() {
+      isLoading = false;
+    });
   }
+}
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -187,34 +192,7 @@ class _SellerHomeScreenState extends State<SellerHomeScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Beranda',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt),
-            label: 'Pesanan',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.store),
-            label: 'Outlet Saya',
-          ),
-        ],
-        selectedItemColor: const Color(0xFF5DAA80),
-        unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
-        onTap: (index) {
-          if (index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => SellerOutletScreen(uid: widget.uid)),
-            );
-          }
-        },
-      ),
+     
     );
   }
 
@@ -236,38 +214,57 @@ class _SellerHomeScreenState extends State<SellerHomeScreen> {
     );
   }
 
-  Widget _buildFeatureItem(
-      BuildContext context, String title, String iconPath) {
-    return GestureDetector(
-      onTap: () {
-        if (title == 'Menu') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => const SellerMenuCategoryScreen()),
-          );
-        } else if (title == 'Metode Pembayaran') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SellerPaymentMethodsScreen(),
+ Widget _buildFeatureItem(BuildContext context, String title, String iconPath) {
+  return GestureDetector(
+    onTap: () {
+      if (title == 'Menu') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const SellerMenuCategoryScreen(),
+          ),
+        );
+      } else if (title == 'Metode Pembayaran') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SellerPaymentMethodsScreen(),
+          ),
+        );
+      } else if (title == 'Laporan Keuangan') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SellerSalesReportScreen(
+              canteenId: widget.uid,
             ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Navigasi ke $title belum tersedia')),
-          );
-        }
-      },
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset(iconPath, height: 40, width: 40),
-          const SizedBox(height: 8),
-          Text(title,
-              style: const TextStyle(color: Colors.black, fontSize: 12)),
-        ],
-      ),
-    );
-  }
+          ),
+        );
+      } else if (title == 'Stok') {
+        // Navigasi ke SellerStockScreen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SellerStockScreen(
+              canteenId: widget.uid, // Gunakan uid untuk filter stok
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Navigasi ke $title belum tersedia')),
+        );
+      }
+    },
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Image.asset(iconPath, height: 40, width: 40),
+        const SizedBox(height: 8),
+        Text(title, style: const TextStyle(color: Colors.black, fontSize: 12)),
+      ],
+    ),
+  );
+}
+
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'seller_home_screen.dart';
+import 'seller_main_screen.dart';
 import 'registration_options_screen.dart';
 
 class LandingScreen extends StatelessWidget {
@@ -63,7 +63,7 @@ class LandingScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => SellerHomeScreen(uid: user.uid),
+                              builder: (context) => SellerMainScreen(uid: user.uid),
                             ),
                           );
                         } else {

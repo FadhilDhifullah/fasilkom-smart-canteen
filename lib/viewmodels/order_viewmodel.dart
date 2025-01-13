@@ -13,21 +13,22 @@ class OrderViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateQuantity(String itemId, int newQuantity) {
-    final item = _orderItems.firstWhere((element) => element.itemId == itemId);
-    if (newQuantity > 0) {
-      item.quantity = newQuantity;
-    } else {
-      _orderItems.remove(item);
-    }
-    notifyListeners();
+  void updateQuantity(String orderId, int newQuantity) {
+  final item = _orderItems.firstWhere((element) => element.orderId == orderId);
+  if (newQuantity > 0) {
+    item.quantity = newQuantity;
+  } else {
+    _orderItems.remove(item);
   }
+  notifyListeners();
+}
 
-  void updateNotes(String itemId, String notes) {
-    final item = _orderItems.firstWhere((element) => element.itemId == itemId);
-    item.notes = notes;
-    notifyListeners();
-  }
+void updateNotes(String orderId, String notes) {
+  final item = _orderItems.firstWhere((element) => element.orderId == orderId);
+  item.notes = notes;
+  notifyListeners();
+}
+
 
   void updatePaymentMethod(String method) {
     _paymentMethod = method;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../viewmodels/auth_viewmodel.dart';
-import '../seller_home_screen.dart';
+import '../seller_main_screen.dart';
 
 class CanteenSellerLoginScreen extends StatefulWidget {
   const CanteenSellerLoginScreen({Key? key}) : super(key: key);
@@ -64,7 +64,7 @@ class _CanteenSellerLoginScreenState extends State<CanteenSellerLoginScreen>
         Navigator.pushReplacement(
   context,
   MaterialPageRoute(
-    builder: (context) => SellerHomeScreen(uid: _authViewModel.currentUser!.uid),
+    builder: (context) => SellerMainScreen(uid: _authViewModel.currentUser!.uid),
   ),
 );
 

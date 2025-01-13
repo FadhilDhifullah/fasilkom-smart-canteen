@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
+import 'customer_order_status_screen.dart';
 
 class CustomerOrderDetailScreen extends StatefulWidget {
   final List<Map<String, dynamic>> selectedCartItems;
@@ -35,65 +36,86 @@ class _CustomerOrderDetailScreenState extends State<CustomerOrderDetailScreen> {
   }
 
   Future<void> _fetchPaymentMethods() async {
-  try {
-    final sellerId = widget.selectedCartItems.first['canteenId'];
-    final paymentMethods =
-        await _firestore.collection('payment_methods').doc(sellerId).get();
+    try {
+      final sellerId = widget.selectedCartItems.first['canteenId'];
+      final paymentMethods =
+          await _firestore.collection('payment_methods').doc(sellerId).get();
 
-    if (paymentMethods.exists) {
-      final data = paymentMethods.data()!;
-      setState(() {
-        if (data['isCOD'] == true && data['isQRIS'] == true) {
-          _paymentMethod = "COD"; // Default ke COD jika keduanya tersedia
-        } else if (data['isCOD'] == true) {
-          _paymentMethod = "COD";
-        } else if (data['isQRIS'] == true) {
-          _paymentMethod = "QRIS";
-        }
-        _qrisUrl = data['qrisUrl'];
-        isLoading = false;
-      });
-    } else {
+      if (paymentMethods.exists) {
+        final data = paymentMethods.data()!;
+       setState(() {
+  if (data['isCOD'] == true && data['isQRIS'] == true) {
+    _paymentMethod = "COD"; // Default ke COD jika keduanya tersedia
+  } else if (data['isCOD'] == true) {
+    _paymentMethod = "COD";
+  } else if (data['isQRIS'] == true) {
+    _paymentMethod = "QRIS";
+  } else {
+    _paymentMethod = "COD"; // Nilai fallback jika tidak ada metode ditemukan
+  }
+  _qrisUrl = data['qrisUrl'];
+  isLoading = false;
+});
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal memuat metode pembayaran: $e')),
+      );
       setState(() {
         isLoading = false;
       });
     }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Gagal memuat metode pembayaran: $e')),
-    );
-    setState(() {
-      isLoading = false;
-    });
   }
-}
-
-
-
- Future<void> _moveCartToOrders() async {
+Future<void> _moveCartToOrders() async {
   final buyerId = _auth.currentUser?.uid ?? '';
+  final canteenId = widget.selectedCartItems.first['canteenId'];
+  final canteenName = widget.selectedCartItems.first['canteenName'];
+  final orderId = _firestore.collection('orders').doc().id; // Buat orderId baru
 
   try {
-    for (var item in widget.selectedCartItems) {
-      final orderDoc = await _firestore.collection('orders').add({
-        'buyerId': buyerId,
-        'canteenId': item['canteenId'],
-        'canteenName': item['canteenName'],
+    // Kumpulkan semua item dalam satu pesanan
+    List<Map<String, dynamic>> orderItems = widget.selectedCartItems.map((item) {
+      return {
         'menuId': item['menuId'],
         'menuName': item['menuName'],
         'category': item['category'],
         'price': item['price'],
         'quantity': item['quantity'],
         'imageUrl': item['imageUrl'] ?? 'https://via.placeholder.com/150',
-        'paymentMethod': _paymentMethod, // Simpan metode pembayaran
-        'status': 'Pending',
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+      };
+    }).toList();
 
-      _orderIds.add(orderDoc.id);
+    // Tentukan status berdasarkan metode pembayaran
+    String initialStatus;
+    if (_paymentMethod == "COD") {
+      initialStatus = "Menunggu Konfirmasi Penjual";
+    } else if (_paymentMethod == "QRIS") {
+      initialStatus = "Belum Bayar";
+    } else {
+      throw Exception("Metode pembayaran tidak valid");
+    }
 
+    // Simpan pesanan dalam satu dokumen
+    await _firestore.collection('orders').doc(orderId).set({
+      'orderId': orderId,
+      'buyerId': buyerId,
+      'canteenId': canteenId,
+      'canteenName': canteenName,
+      'items': orderItems, // Semua menu dalam satu array
+      'paymentMethod': _paymentMethod, // Tambahkan paymentMethod
+      'status': initialStatus,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    // Hapus semua item dari keranjang
+    for (var item in widget.selectedCartItems) {
       await _firestore.collection('cart').doc(item['cartId']).delete();
 
+      // Update stok menu
       final menuRef = _firestore.collection('menus').doc(item['menuId']);
       final menuDoc = await menuRef.get();
       if (menuDoc.exists) {
@@ -107,46 +129,16 @@ class _CustomerOrderDetailScreenState extends State<CustomerOrderDetailScreen> {
 }
 
 
-  Future<void> _cancelOrders() async {
+  Future<void> _updateOrderStatus(String status) async {
     try {
       for (var orderId in _orderIds) {
-        final orderDoc = await _firestore.collection('orders').doc(orderId).get();
-        if (orderDoc.exists) {
-          final orderData = orderDoc.data()!;
-          final menuId = orderData['menuId'];
-          final quantity = orderData['quantity'];
-
-          final menuRef = _firestore.collection('menus').doc(menuId);
-          final menuDoc = await menuRef.get();
-          if (menuDoc.exists) {
-            final currentStock = menuDoc['stock'] as int;
-            await menuRef.update({'stock': currentStock + quantity});
-          }
-        }
-
-        await _firestore.collection('orders').doc(orderId).delete();
+        await _firestore.collection('orders').doc(orderId).update({
+          'paymentMethod': _paymentMethod,
+          'status': status,
+        });
       }
     } catch (e) {
-      print('Error saat membatalkan pesanan: $e');
-    }
-  }
-
-  Future<void> _downloadQRIS() async {
-    if (_qrisUrl != null) {
-      try {
-        Clipboard.setData(ClipboardData(text: _qrisUrl!));
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Link QRIS disalin ke clipboard')),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal mengunduh QRIS: $e')),
-        );
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('QRIS URL tidak tersedia')),
-      );
+      print('Error saat memperbarui status pesanan: $e');
     }
   }
 
@@ -258,37 +250,50 @@ class _CustomerOrderDetailScreenState extends State<CustomerOrderDetailScreen> {
     }).toList();
   }
 
- Widget _buildPaymentMethodSelector() {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text(
-        'Metode Pembayaran',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-      ),
-      if (_paymentMethod == null)
-        const Text('Tidak ada metode pembayaran tersedia.'),
-      if (_qrisUrl != null)
+  Widget _buildPaymentMethodSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Metode Pembayaran',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        if (_paymentMethod == null)
+          const Text('Tidak ada metode pembayaran tersedia.'),
+        if (_qrisUrl != null)
+          ListTile(
+            title: const Text('QRIS'),
+            subtitle: _paymentMethod == "QRIS"
+                ? Image.network(
+                    _qrisUrl!,
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Icon(Icons.error),
+                  )
+                : null,
+            trailing: _paymentMethod == "QRIS"
+                ? IconButton(
+                    icon: const Icon(Icons.download),
+                    onPressed: _downloadQRIS,
+                  )
+                : null,
+            leading: Radio(
+              value: "QRIS",
+              groupValue: _paymentMethod,
+              onChanged: (value) {
+                setState(() {
+                  _paymentMethod = value.toString();
+                });
+              },
+            ),
+          ),
         ListTile(
-          title: const Text('QRIS'),
-          subtitle: _paymentMethod == "QRIS"
-              ? Image.network(
-                  _qrisUrl!,
-                  width: 100,
-                  height: 100,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.error),
-                )
-              : null,
-          trailing: _paymentMethod == "QRIS"
-              ? IconButton(
-                  icon: const Icon(Icons.download),
-                  onPressed: _downloadQRIS,
-                )
-              : null,
+          title: const Text('COD'),
+          subtitle: const Text('Pembayaran langsung di tempat.'),
           leading: Radio(
-            value: "QRIS",
+            value: "COD",
             groupValue: _paymentMethod,
             onChanged: (value) {
               setState(() {
@@ -297,24 +302,9 @@ class _CustomerOrderDetailScreenState extends State<CustomerOrderDetailScreen> {
             },
           ),
         ),
-      ListTile(
-        title: const Text('COD'),
-        subtitle: const Text('Pembayaran langsung di tempat.'),
-        leading: Radio(
-          value: "COD",
-          groupValue: _paymentMethod,
-          onChanged: (value) {
-            setState(() {
-              _paymentMethod = value.toString();
-            });
-          },
-        ),
-      ),
-    ],
-  );
-}
-
-
+      ],
+    );
+  }
 
   Widget _buildSummary() {
     return Column(
@@ -355,49 +345,101 @@ class _CustomerOrderDetailScreenState extends State<CustomerOrderDetailScreen> {
   }
 
   Widget _buildBottomBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(color: Colors.grey, blurRadius: 5, offset: Offset(0, -2)),
-        ],
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    decoration: const BoxDecoration(
+      color: Colors.white,
+      boxShadow: [
+        BoxShadow(color: Colors.grey, blurRadius: 5, offset: Offset(0, -2)),
+      ],
+    ),
+    child: ElevatedButton(
+      onPressed: () async {
+        if (_paymentMethod == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Pilih metode pembayaran terlebih dahulu')),
+          );
+          return;
+        }
+
+        try {
+          // Pindahkan item ke orders
+          await _moveCartToOrders();
+
+          // Navigasikan ke layar status pesanan
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CustomerOrderStatusScreen(
+                buyerId: _auth.currentUser!.uid,
+              ),
+            ),
+          );
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal membuat pesanan: $e')),
+          );
+        }
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFFFFA31D),
+        padding: const EdgeInsets.symmetric(vertical: 16),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          ElevatedButton(
-            onPressed: () async {
-              await _cancelOrders();
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: const Text(
-              'Batal',
-              style: TextStyle(color: Colors.white, fontSize: 18),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Pesanan berhasil dikonfirmasi!')),
-              );
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFFA31D),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: const Text(
-              'Konfirmasi',
-              style: TextStyle(color: Colors.white, fontSize: 18),
-            ),
-          ),
-        ],
+      child: const Text(
+        'Buat Pesanan',
+        style: TextStyle(color: Colors.white, fontSize: 18),
       ),
+    ),
+  );
+}
+
+
+  Future<void> _downloadQRIS() async {
+  if (_qrisUrl != null) {
+    try {
+      Clipboard.setData(ClipboardData(text: _qrisUrl!));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Link QRIS disalin ke clipboard')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal mengunduh QRIS: $e')),
+      );
+    }
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('QRIS URL tidak tersedia')),
     );
   }
+}
+Future<void> _cancelOrders() async {
+  try {
+    for (var orderId in _orderIds) {
+      final orderDoc = await _firestore.collection('orders').doc(orderId).get();
+      if (orderDoc.exists) {
+        final orderData = orderDoc.data()!;
+        final menuId = orderData['menuId'];
+        final quantity = orderData['quantity'];
+
+        // Kembalikan stok menu
+        final menuRef = _firestore.collection('menus').doc(menuId);
+        final menuDoc = await menuRef.get();
+        if (menuDoc.exists) {
+          final currentStock = menuDoc['stock'] as int;
+          await menuRef.update({'stock': currentStock + quantity});
+        }
+      }
+
+      // Hapus order dari Firestore
+      await _firestore.collection('orders').doc(orderId).delete();
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Pesanan berhasil dibatalkan')),
+    );
+  } catch (e) {
+    print('Error saat membatalkan pesanan: $e');
+  }
+}
+
 }

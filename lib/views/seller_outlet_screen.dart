@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../viewmodels/seller_outlet_viewmodel.dart';
 import '../../models/seller_outlet_model.dart';
 
+
 class SellerOutletScreen extends StatefulWidget {
   final String uid;
 
@@ -137,6 +138,7 @@ class _SellerOutletScreenState extends State<SellerOutletScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        automaticallyImplyLeading: false, // Hilangkan tombol kembali
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -150,7 +152,7 @@ class _SellerOutletScreenState extends State<SellerOutletScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildEditableField('Nama Pemilik', _ownerNameController, isEditingPersonalInfo),
+                 
                   _buildEditableField('Nama Toko', _shopNameController, isEditingPersonalInfo),
                   _buildEditableField('Email', _emailController, isEditingPersonalInfo),
                   _buildEditableField('Nomor Telepon', _phoneController, isEditingPersonalInfo),

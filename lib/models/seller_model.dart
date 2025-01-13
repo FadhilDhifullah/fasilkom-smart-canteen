@@ -4,6 +4,7 @@ class SellerModel {
   final String email;
   final String address;
   final String description;
+  final bool verified;
   final String imageUrl;
 
   SellerModel({
@@ -12,6 +13,7 @@ class SellerModel {
     required this.email,
     required this.address,
     required this.description,
+    this.verified = false,
     required this.imageUrl,
   });
 
@@ -23,6 +25,7 @@ class SellerModel {
       'email': email,
       'address': address,
       'description': description,
+      'verified': verified,
       'imageUrl': imageUrl,
     };
   }
