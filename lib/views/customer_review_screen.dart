@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../models/review_model.dart';
 import '../viewmodels/review_viewmodel.dart';
@@ -36,16 +37,53 @@ class _CustomerReviewScreenState extends State<CustomerReviewScreen> {
   final TextEditingController reviewController = TextEditingController();
   final TextEditingController searchController = TextEditingController();
   String _searchQuery = '';
+  String? customerProfileImage;
 
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => _showReviewDialog());
+    _fetchCustomerProfileImage();
   }
 
-  void _showReviewDialog({ReviewModel? review}) {
+  Future<void> _fetchCustomerProfileImage() async {
+    try {
+      final customerDoc = await FirebaseFirestore.instance
+          .collection('customers')
+          .doc(widget.customerId)
+          .get();
+
+      setState(() {
+        customerProfileImage =
+            customerDoc.data()?['profilePicture'] ?? widget.customerProfileImage;
+      });
+    } catch (e) {
+      print('Error fetching customer profile image: $e');
+      setState(() {
+        customerProfileImage = widget.customerProfileImage;
+      });
+    }
+  }
+
+  void _showReviewDialog({ReviewModel? review}) async {
+    if (review == null) {
+      final reviewExists = await FirebaseFirestore.instance
+          .collection('reviews')
+          .where('orderId', isEqualTo: widget.orderId)
+          .get();
+
+      if (reviewExists.docs.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pesanan ini sudah diulas')),
+        );
+        return;
+      }
+    }
+
     reviewController.text = review?.reviewText ?? '';
     rating = review?.rating ?? 0;
+
+    final String combinedMenuNames =
+        widget.items.map((item) => item['menuName'] ?? '').join(', ');
 
     showDialog(
       context: context,
@@ -66,19 +104,7 @@ class _CustomerReviewScreenState extends State<CustomerReviewScreen> {
                     const SizedBox(height: 16),
                     const Text('Menu yang dipesan:'),
                     const SizedBox(height: 8),
-                    ...widget.items.map((item) => ListTile(
-                          leading: Image.network(
-                            item['imageUrl'] ?? 'https://via.placeholder.com/150',
-                            width: 40,
-                            height: 40,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Icon(Icons.error),
-                          ),
-                          title: Text(item['menuName'] ?? 'Nama Menu Tidak Tersedia'),
-                          subtitle: Text(
-                              'x${item['quantity']} - Rp ${item['price'].toString()}'),
-                        )),
+                    Text(combinedMenuNames),
                     const SizedBox(height: 16),
                     TextField(
                       controller: reviewController,
@@ -114,28 +140,21 @@ class _CustomerReviewScreenState extends State<CustomerReviewScreen> {
                         ElevatedButton(
                           onPressed: () {
                             if (reviewController.text.isNotEmpty && rating > 0) {
-                              if (review == null) {
-                                final newReview = ReviewModel(
-                                  reviewId: '',
-                                  canteenId: widget.canteenId,
-                                  menuId: widget.menuId,
-                                  orderId: widget.orderId,
-                                  menuName: widget.menuName,
-                                  menuImageUrl: widget.menuImageUrl,
-                                  customerId: widget.customerId,
-                                  customerName: widget.customerName,
-                                  customerProfileImage: widget.customerProfileImage,
-                                  reviewText: reviewController.text,
-                                  rating: rating,
-                                  timestamp: DateTime.now(),
-                                );
-                                _viewModel.addReview(newReview);
-                              } else {
-                                _viewModel.updateReview(review.reviewId, {
-                                  'reviewText': reviewController.text,
-                                  'rating': rating,
-                                });
-                              }
+                              final newReview = ReviewModel(
+                                reviewId: '',
+                                canteenId: widget.canteenId,
+                                menuId: widget.menuId,
+                                orderId: widget.orderId,
+                                menuName: combinedMenuNames,
+                                menuImageUrl: widget.menuImageUrl,
+                                customerId: widget.customerId,
+                                customerName: widget.customerName,
+                                customerProfileImage: customerProfileImage!,
+                                reviewText: reviewController.text,
+                                rating: rating,
+                                timestamp: DateTime.now(),
+                              );
+                              _viewModel.addReview(newReview);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Ulasan berhasil disimpan')),
                               );
@@ -205,51 +224,76 @@ class _CustomerReviewScreenState extends State<CustomerReviewScreen> {
                   itemCount: reviews.length,
                   itemBuilder: (context, index) {
                     final review = reviews[index];
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundImage: NetworkImage(
-                          review.customerProfileImage.isNotEmpty
-                              ? review.customerProfileImage
-                              : widget.customerProfileImage,
+                    return Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                review.customerProfileImage.isNotEmpty
+                                    ? CircleAvatar(
+                                        backgroundImage:
+                                            NetworkImage(review.customerProfileImage),
+                                      )
+                                    : const Icon(Icons.account_circle, size: 40),
+                                const SizedBox(width: 8),
+                                Text(
+                                  review.customerName,
+                                  style: const TextStyle(
+                                      fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(review.menuName, style: const TextStyle(fontSize: 14)),
+                            Row(
+                              children: List.generate(5, (index) {
+                                return Icon(
+                                  Icons.star,
+                                  size: 16,
+                                  color: index < review.rating ? Colors.amber : Colors.grey,
+                                );
+                              }),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(review.reviewText, style: const TextStyle(fontSize: 14)),
+                            if (review.reply != null && review.reply!.isNotEmpty)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Balasan Penjual:',
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.green),
+                                  ),
+                                  Row(
+                                    children: [
+                                      review.replyProfileImage != null
+                                          ? CircleAvatar(
+                                              backgroundImage: NetworkImage(
+                                                  review.replyProfileImage!),
+                                              radius: 15,
+                                            )
+                                          : const Icon(Icons.store, size: 30),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          review.reply!,
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                          ],
                         ),
-                      ),
-                      title: Text(review.customerName),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(review.menuName),
-                          Row(
-                            children: List.generate(5, (index) {
-                              return Icon(
-                                Icons.star,
-                                size: 16,
-                                color: index < review.rating
-                                    ? Colors.amber
-                                    : Colors.grey,
-                              );
-                            }),
-                          ),
-                          Text(review.reviewText),
-                        ],
-                      ),
-                      trailing: PopupMenuButton<String>(
-                        onSelected: (value) {
-                          if (value == 'edit') {
-                            _showReviewDialog(review: review);
-                          } else if (value == 'delete') {
-                            _viewModel.deleteReview(review.reviewId);
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Text('Edit ulasan'),
-                          ),
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Text('Hapus ulasan'),
-                          ),
-                        ],
                       ),
                     );
                   },

@@ -3,12 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class OrderStatusModel {
   final String orderId;
   final String buyerId;
+  final String customerName; // Properti baru
   final String canteenId;
   final String canteenName;
-  final List<Map<String, dynamic>> items; // Tambahkan untuk menyimpan daftar menu
+  final List<Map<String, dynamic>> items; // Daftar menu
   final String paymentMethod;
-  final double price; // Tetap ada jika ingin menyimpan total harga
-  final int quantity; // Tetap ada untuk kompatibilitas
+  final double price; // Total harga
+  final int quantity; // Total kuantitas (opsional, jika tetap ingin digunakan)
   final String status;
   final String? proofImageUrl; // URL bukti pembayaran (opsional)
   final DateTime timestamp;
@@ -16,6 +17,7 @@ class OrderStatusModel {
   OrderStatusModel({
     required this.orderId,
     required this.buyerId,
+    required this.customerName, // Properti baru
     required this.canteenId,
     required this.canteenName,
     required this.items,
@@ -31,11 +33,15 @@ class OrderStatusModel {
     return OrderStatusModel(
       orderId: id,
       buyerId: data['buyerId'] ?? '',
+      customerName: data['customerName'] ?? 'Tidak Diketahui', // Properti baru
       canteenId: data['canteenId'] ?? '',
       canteenName: data['canteenName'] ?? '',
-      items: (data['items'] as List<dynamic>?)?.map((e) => Map<String, dynamic>.from(e)).toList() ?? [],
+      items: (data['items'] as List<dynamic>?)
+              ?.map((e) => Map<String, dynamic>.from(e))
+              .toList() ??
+          [],
       paymentMethod: data['paymentMethod'] ?? '',
-      price: (data['price'] as num?)?.toDouble() ?? 0.0, // Tetap konversi jika disimpan
+      price: (data['price'] as num?)?.toDouble() ?? 0.0, // Tetap konversi
       quantity: (data['quantity'] as num?)?.toInt() ?? 0, // Tetap kompatibel
       status: data['status'] ?? 'Pending',
       proofImageUrl: data['proofImageUrl'],
@@ -46,9 +52,10 @@ class OrderStatusModel {
   Map<String, dynamic> toFirestore() {
     return {
       'buyerId': buyerId,
+      'customerName': customerName, // Properti baru
       'canteenId': canteenId,
       'canteenName': canteenName,
-      'items': items, // Menyimpan array menu
+      'items': items, // Daftar menu
       'paymentMethod': paymentMethod,
       'price': price, // Tetap ada
       'quantity': quantity, // Tetap ada
@@ -57,5 +64,4 @@ class OrderStatusModel {
       'timestamp': timestamp,
     };
   }
-  
 }

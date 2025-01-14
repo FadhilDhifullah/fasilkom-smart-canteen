@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import '../../viewmodels/seller_home_viewmodel.dart';
 
@@ -5,7 +6,7 @@ import 'seller_menu_category_screen.dart';
 import 'seller_sales_report_screen.dart';
 import 'seller_payment_methods_screen.dart';
 import 'seller_stock_screen.dart';
-
+import 'seller_review_screen.dart';
 
 class SellerHomeScreen extends StatefulWidget {
   final String uid;
@@ -21,27 +22,32 @@ class _SellerHomeScreenState extends State<SellerHomeScreen> {
   Map<String, dynamic>? homeData;
   bool isLoading = true;
 
- @override
-void initState() {
-  super.initState();
-  _loadHomeData();
-}
-
-Future<void> _loadHomeData() async {
-  try {
-    homeData = await _homeViewModel.fetchSellerHomeData(widget.uid);
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Gagal memuat data: $e')),
-    );
-  } finally {
-    setState(() {
-      isLoading = false;
-    });
+  @override
+  void initState() {
+    super.initState();
+    _loadHomeData();
   }
-}
 
-
+  Future<void> _loadHomeData() async {
+    try {
+      final data = await _homeViewModel.fetchSellerHomeData(widget.uid);
+      if (mounted) {
+        setState(() {
+          homeData = data;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memuat data: $e')),
+        );
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +74,7 @@ Future<void> _loadHomeData() async {
     }
 
     final seller = homeData!['seller'] ?? {};
-    final transactions = homeData!['transactions'] ??
+    final transactions = homeData!['transactions'] ?? 
         {'transactionCount': 0, 'dailyIncome': 0.0};
 
     return Scaffold(
@@ -94,7 +100,7 @@ Future<void> _loadHomeData() async {
                 text: TextSpan(
                   children: [
                     const TextSpan(
-                      text: 'Selamat berjualan, Kantin',
+                      text: 'Selamat berjualan, Kantin ',
                       style: TextStyle(color: Colors.black, fontSize: 17),
                     ),
                     TextSpan(
@@ -125,8 +131,7 @@ Future<void> _loadHomeData() async {
                     Container(width: 1, height: 80, color: Colors.white),
                     _buildTransactionInfo(
                       title: 'Pemasukan Hari Ini',
-                      value:
-                          'Rp ${transactions['dailyIncome'].toStringAsFixed(2)}',
+                      value: 'Rp ${transactions['dailyIncome'].toStringAsFixed(2)}',
                     ),
                   ],
                 ),
@@ -151,8 +156,7 @@ Future<void> _loadHomeData() async {
                     ),
                     const SizedBox(height: 16),
                     GridView.builder(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
                         childAspectRatio: 1,
                         mainAxisSpacing: 12,
@@ -165,23 +169,15 @@ Future<void> _loadHomeData() async {
                         final feature = [
                           {'title': 'Menu', 'icon': 'assets/images/menu.png'},
                           {'title': 'Stok', 'icon': 'assets/images/stok.png'},
-                          {
-                            'title': 'Laporan Keuangan',
-                            'icon': 'assets/images/laporan_keuangan.png'
-                          },
-                          {
-                            'title': 'Ulasan',
-                            'icon': 'assets/images/ulasan.png'
-                          },
-                          {
-                            'title': 'Metode Pembayaran',
-                            'icon': 'assets/images/payment_methods.png'
-                          },
+                          {'title': 'Laporan Keuangan', 'icon': 'assets/images/laporan_keuangan.png'},
+                          {'title': 'Ulasan', 'icon': 'assets/images/ulasan.png'},
+                          {'title': 'Metode Pembayaran', 'icon': 'assets/images/payment_methods.png'},
                         ][index];
                         return _buildFeatureItem(
                           context,
                           feature['title']!,
                           feature['icon']!,
+                          seller,
                         );
                       },
                     ),
@@ -192,7 +188,6 @@ Future<void> _loadHomeData() async {
           ),
         ),
       ),
-     
     );
   }
 
@@ -214,57 +209,64 @@ Future<void> _loadHomeData() async {
     );
   }
 
- Widget _buildFeatureItem(BuildContext context, String title, String iconPath) {
-  return GestureDetector(
-    onTap: () {
-      if (title == 'Menu') {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const SellerMenuCategoryScreen(),
-          ),
-        );
-      } else if (title == 'Metode Pembayaran') {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => SellerPaymentMethodsScreen(),
-          ),
-        );
-      } else if (title == 'Laporan Keuangan') {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => SellerSalesReportScreen(
-              canteenId: widget.uid,
+  Widget _buildFeatureItem(
+      BuildContext context, String title, String iconPath, Map<String, dynamic> seller) {
+    return GestureDetector(
+      onTap: () {
+        if (title == 'Menu') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const SellerMenuCategoryScreen(),
             ),
-          ),
-        );
-      } else if (title == 'Stok') {
-        // Navigasi ke SellerStockScreen
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => SellerStockScreen(
-              canteenId: widget.uid, // Gunakan uid untuk filter stok
+          );
+        } else if (title == 'Metode Pembayaran') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SellerPaymentMethodsScreen(),
             ),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Navigasi ke $title belum tersedia')),
-        );
-      }
-    },
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Image.asset(iconPath, height: 40, width: 40),
-        const SizedBox(height: 8),
-        Text(title, style: const TextStyle(color: Colors.black, fontSize: 12)),
-      ],
+          );
+        } else if (title == 'Laporan Keuangan') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SellerSalesReportScreen(
+                canteenId: widget.uid,
+              ),
+            ),
+          );
+        } else if (title == 'Stok') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SellerStockScreen(
+                canteenId: widget.uid,
+              ),
+            ),
+          );
+        } else if (title == 'Ulasan') {
+          Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (context) => SellerReviewScreen(
+      canteenId: widget.uid,
+      sellerProfileImage: seller['imageUrl'] ?? 'https://via.placeholder.com/150',
     ),
-  );
-}
+  ),
+);
 
+        }
+      },
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(iconPath, height: 40, width: 40),
+          const SizedBox(height: 8),
+          Text(title,
+              style: const TextStyle(color: Colors.black, fontSize: 12)),
+        ],
+      ),
+    );
+  }
 }

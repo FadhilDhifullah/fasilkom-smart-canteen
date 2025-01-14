@@ -94,88 +94,96 @@ class _SellerOrderStatusScreenState extends State<SellerOrderStatusScreen>
   }
 
   Widget _buildStatusCard(OrderStatusModel order) {
-    final hasItems = order.items.isNotEmpty;
-    final firstItem = hasItems ? order.items.first : null;
+  final hasItems = order.items.isNotEmpty;
+  final firstItem = hasItems ? order.items.first : null;
 
-    return Card(
-      elevation: 3,
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (hasItems) ...[
-              Row(
-                children: [
-                  Image.network(
-                    firstItem?['imageUrl'] ?? 'https://via.placeholder.com/150',
-                    width: 50,
-                    height: 50,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const Icon(Icons.error),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      firstItem?['menuName'] ?? 'Nama Tidak Diketahui',
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-            ] else
-              const Text(
-                'Tidak ada item dalam pesanan.',
-                style: TextStyle(fontSize: 14, color: Colors.red),
-              ),
-            Text(
-              'Status: ${order.status}',
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-            if (order.items.length > 1)
-              TextButton(
-                onPressed: () => _showAllItems(order.items),
-                child: const Text('Lihat Selengkapnya'),
-              ),
-            if (order.proofImageUrl != null)
-              ElevatedButton(
-                onPressed: () => _showProofImage(order.proofImageUrl),
-                child: const Text('Lihat Bukti Pembayaran'),
-              ),
+  return Card(
+    elevation: 3,
+    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (hasItems) ...[
             Row(
               children: [
-                if (order.status == 'Menunggu Konfirmasi Penjual')
-                  ElevatedButton(
-                    onPressed: () =>
-                        _viewModel.updateOrderStatus(order.orderId, 'Dalam Proses'),
-                    child: const Text('Konfirmasi'),
-                  ),
-                if (order.status == 'Dalam Proses')
-                  ElevatedButton(
-                    onPressed: () =>
-                        _viewModel.updateOrderStatus(order.orderId, 'Selesai'),
-                    child: const Text('Selesai'),
-                  ),
+                Image.network(
+                  firstItem?['imageUrl'] ?? 'https://via.placeholder.com/150',
+                  width: 50,
+                  height: 50,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.error),
+                ),
                 const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () =>
-                      _viewModel.updateOrderStatus(order.orderId, 'Batal'),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: const Text('Batalkan'),
+                Expanded(
+                  child: Text(
+                    firstItem?['menuName'] ?? 'Nama Tidak Diketahui',
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             ),
-          ],
-        ),
+            const SizedBox(height: 8),
+            if (firstItem != null && firstItem['notes'] != null && firstItem['notes'].isNotEmpty)
+              Text(
+                'Catatan: ${firstItem['notes']}',
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+          ] else
+            const Text(
+              'Tidak ada item dalam pesanan.',
+              style: TextStyle(fontSize: 14, color: Colors.red),
+            ),
+          Text(
+            'Status: ${order.status}',
+            style: const TextStyle(fontSize: 14),
+          ),
+          const SizedBox(height: 16),
+          if (order.items.length > 1)
+            TextButton(
+              onPressed: () => _showAllItems(order.items),
+              child: const Text('Lihat Selengkapnya'),
+            ),
+          if (order.proofImageUrl != null)
+            ElevatedButton(
+              onPressed: () => _showProofImage(order.proofImageUrl),
+              child: const Text('Lihat Bukti Pembayaran'),
+            ),
+          Row(
+            children: [
+              if (order.status == 'Menunggu Konfirmasi Penjual')
+                ElevatedButton(
+                  onPressed: () =>
+                      _viewModel.updateOrderStatus(order.orderId, 'Dalam Proses'),
+                  child: const Text('Konfirmasi'),
+                ),
+              if (order.status == 'Dalam Proses')
+                ElevatedButton(
+                  onPressed: () =>
+                      _viewModel.updateOrderStatus(order.orderId, 'Selesai'),
+                  child: const Text('Selesai'),
+                ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () =>
+                    _viewModel.updateOrderStatus(order.orderId, 'Batal'),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Batalkan'),
+                
+              ),
+              
+            ],
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _buildOrderList(String status) {
     return RefreshIndicator(

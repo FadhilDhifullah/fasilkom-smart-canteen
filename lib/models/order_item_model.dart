@@ -7,7 +7,7 @@ class OrderItem {
   final String canteenImageUrl;
   final String itemImageUrl;
   int quantity;
-  String? notes;
+  String? notes; // Tambahkan notes di sini
   final double price;
 
   OrderItem({
@@ -19,7 +19,7 @@ class OrderItem {
     required this.canteenImageUrl,
     required this.itemImageUrl,
     required this.quantity,
-    this.notes,
+    this.notes, // Catatan opsional
     required this.price,
   });
 

@@ -6,8 +6,11 @@ import '../viewmodels/order_status_viewmodel.dart';
 import 'package:apilikasi_smart_canteen/views/customer_review_screen.dart';
 import 'dart:io';
 
+
+
 class CustomerOrderStatusScreen extends StatefulWidget {
   final String buyerId;
+  
 
   const CustomerOrderStatusScreen({Key? key, required this.buyerId})
       : super(key: key);
@@ -114,16 +117,26 @@ class _CustomerOrderStatusScreenState
               final item = items[index];
               return ListTile(
                 leading: Image.network(
-                  item['imageUrl'] ?? 'https://via.placeholder.com/150',
+                  item?['imageUrl'] ?? 'https://via.placeholder.com/150',
                   width: 50,
                   height: 50,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) =>
                       const Icon(Icons.error),
                 ),
-                title: Text(item['menuName'] ?? 'Nama Menu Tidak Tersedia'),
-                subtitle: Text(
-                    'x${item['quantity'] ?? 0} - Rp ${item['price'] ?? 'Tidak Ada Harga'}'),
+                title: Text(item?['menuName'] ?? 'Nama Tidak Diketahui'),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                        'x${item?['quantity'] ?? 0} - Rp ${item?['price'] ?? 0}'),
+                    if (item?['notes'] != null && item['notes'].isNotEmpty)
+                      Text(
+                        'Catatan: ${item['notes']}',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                  ],
+                ),
               );
             },
           ),
@@ -180,6 +193,14 @@ class _CustomerOrderStatusScreenState
               'Status: ${order.status}',
               style: const TextStyle(fontSize: 14),
             ),
+            if (firstItem != null && firstItem['notes'] != null && firstItem['notes'].isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  'Catatan: ${firstItem['notes']}',
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+              ),
             const SizedBox(height: 16),
             if ((order.items?.length ?? 0) > 1)
               TextButton(
@@ -277,7 +298,7 @@ class _CustomerOrderStatusScreenState
         controller: _tabController,
         children: [
           _buildOrderList('Belum Bayar'),
-          _buildOrderList('Menunggu Konfirmasi'),
+          _buildOrderList('Menunggu Konfirmasi Penjual'),
           _buildOrderList('Dalam Proses'),
           _buildOrderList('Selesai'),
           _buildOrderList('Batal'),

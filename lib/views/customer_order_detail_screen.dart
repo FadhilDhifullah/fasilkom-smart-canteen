@@ -31,7 +31,6 @@ class _CustomerOrderDetailScreenState extends State<CustomerOrderDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _moveCartToOrders();
     _fetchPaymentMethods();
   }
 
@@ -70,13 +69,25 @@ class _CustomerOrderDetailScreenState extends State<CustomerOrderDetailScreen> {
       });
     }
   }
+bool _isOrderInProgress = false;
+
 Future<void> _moveCartToOrders() async {
+  if (_isOrderInProgress) return; // Jika sudah berjalan, abaikan pemanggilan berikutnya
+
+  _isOrderInProgress = true; // Tandai proses sedang berlangsung
   final buyerId = _auth.currentUser?.uid ?? '';
   final canteenId = widget.selectedCartItems.first['canteenId'];
   final canteenName = widget.selectedCartItems.first['canteenName'];
-  final orderId = _firestore.collection('orders').doc().id; // Buat orderId baru
+  final orderId = _firestore.collection('orders').doc().id;
+  String customerName = "Tidak Diketahui";
 
   try {
+    // Ambil nama pelanggan dari Firestore
+    final customerDoc = await _firestore.collection('customers').doc(buyerId).get();
+    if (customerDoc.exists) {
+      customerName = customerDoc.data()?['fullName'] ?? "Tidak Diketahui";
+    }
+
     // Kumpulkan semua item dalam satu pesanan
     List<Map<String, dynamic>> orderItems = widget.selectedCartItems.map((item) {
       return {
@@ -85,28 +96,25 @@ Future<void> _moveCartToOrders() async {
         'category': item['category'],
         'price': item['price'],
         'quantity': item['quantity'],
+        'notes': item['notes'] ?? '',
         'imageUrl': item['imageUrl'] ?? 'https://via.placeholder.com/150',
       };
     }).toList();
 
     // Tentukan status berdasarkan metode pembayaran
-    String initialStatus;
-    if (_paymentMethod == "COD") {
-      initialStatus = "Menunggu Konfirmasi Penjual";
-    } else if (_paymentMethod == "QRIS") {
-      initialStatus = "Belum Bayar";
-    } else {
-      throw Exception("Metode pembayaran tidak valid");
-    }
+    String initialStatus = _paymentMethod == "COD"
+        ? "Menunggu Konfirmasi Penjual"
+        : "Belum Bayar";
 
     // Simpan pesanan dalam satu dokumen
     await _firestore.collection('orders').doc(orderId).set({
       'orderId': orderId,
       'buyerId': buyerId,
+      'customerName': customerName,
       'canteenId': canteenId,
       'canteenName': canteenName,
-      'items': orderItems, // Semua menu dalam satu array
-      'paymentMethod': _paymentMethod, // Tambahkan paymentMethod
+      'items': orderItems,
+      'paymentMethod': _paymentMethod,
       'status': initialStatus,
       'timestamp': FieldValue.serverTimestamp(),
     });
@@ -125,22 +133,11 @@ Future<void> _moveCartToOrders() async {
     }
   } catch (e) {
     print('Error saat memindahkan cart ke orders: $e');
+  } finally {
+    _isOrderInProgress = false; // Proses selesai
   }
 }
 
-
-  Future<void> _updateOrderStatus(String status) async {
-    try {
-      for (var orderId in _orderIds) {
-        await _firestore.collection('orders').doc(orderId).update({
-          'paymentMethod': _paymentMethod,
-          'status': status,
-        });
-      }
-    } catch (e) {
-      print('Error saat memperbarui status pesanan: $e');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -172,83 +169,96 @@ Future<void> _moveCartToOrders() async {
   }
 
   List<Widget> _buildOrderItems() {
-    return widget.selectedCartItems.map((orderItem) {
-      return Card(
-        margin: const EdgeInsets.only(bottom: 16),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  ClipOval(
-                    child: Image.network(
-                      orderItem['imageUrl'] ?? 'https://via.placeholder.com/150',
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.error),
-                    ),
+  return widget.selectedCartItems.map((orderItem) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                ClipOval(
+                  child: Image.network(
+                    orderItem['imageUrl'] ?? 'https://via.placeholder.com/150',
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Icon(Icons.error),
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    orderItem['canteenName'] ?? 'Nama Kantin Tidak Diketahui',
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  orderItem['canteenName'] ?? 'Nama Kantin Tidak Diketahui',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const Divider(),
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    orderItem['imageUrl'] ?? 'https://via.placeholder.com/150',
+                    width: 50,
+                    height: 50,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Icon(Icons.error),
                   ),
-                ],
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        orderItem['menuName'] ?? 'Menu Tidak Diketahui',
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        orderItem['category'] ?? 'Kategori Tidak Diketahui',
+                        style: const TextStyle(
+                            fontSize: 14, color: Colors.grey),
+                      ),
+                      Text(
+                        'Rp ${(orderItem['price'] ?? 0).toStringAsFixed(0)}',
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  'x${orderItem['quantity'] ?? 0}',
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              decoration: const InputDecoration(
+                labelText: 'Catatan Tambahan',
+                border: OutlineInputBorder(),
               ),
-              const Divider(),
-              Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      orderItem['imageUrl'] ?? 'https://via.placeholder.com/150',
-                      width: 50,
-                      height: 50,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.error),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          orderItem['menuName'] ?? 'Menu Tidak Diketahui',
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          orderItem['category'] ?? 'Kategori Tidak Diketahui',
-                          style: const TextStyle(
-                              fontSize: 14, color: Colors.grey),
-                        ),
-                        Text(
-                          'Rp ${(orderItem['price'] ?? 0).toStringAsFixed(0)}',
-                          style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    'x${orderItem['quantity'] ?? 0}',
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ],
-              ),
-            ],
-          ),
+              onChanged: (value) {
+                setState(() {
+                  orderItem['notes'] = value; // Simpan catatan
+                });
+              },
+            ),
+          ],
         ),
-      );
-    }).toList();
-  }
+      ),
+    );
+  }).toList();
+}
+
 
   Widget _buildPaymentMethodSelector() {
     return Column(
@@ -354,44 +364,60 @@ Future<void> _moveCartToOrders() async {
       ],
     ),
     child: ElevatedButton(
-      onPressed: () async {
-        if (_paymentMethod == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Pilih metode pembayaran terlebih dahulu')),
-          );
-          return;
-        }
+      onPressed: isLoading
+          ? null // Nonaktifkan tombol jika sedang loading
+          : () async {
+              if (_paymentMethod == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Pilih metode pembayaran terlebih dahulu')),
+                );
+                return;
+              }
 
-        try {
-          // Pindahkan item ke orders
-          await _moveCartToOrders();
+              setState(() {
+                isLoading = true;
+              });
 
-          // Navigasikan ke layar status pesanan
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CustomerOrderStatusScreen(
-                buyerId: _auth.currentUser!.uid,
-              ),
-            ),
-          );
-        } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Gagal membuat pesanan: $e')),
-          );
-        }
-      },
+              try {
+                // Pindahkan item ke orders
+                await _moveCartToOrders();
+
+                // Navigasikan ke layar status pesanan
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CustomerOrderStatusScreen(
+                      buyerId: _auth.currentUser!.uid,
+                    ),
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Gagal membuat pesanan: $e')),
+                );
+              } finally {
+                setState(() {
+                  isLoading = false;
+                });
+              }
+            },
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFFFFA31D),
         padding: const EdgeInsets.symmetric(vertical: 16),
       ),
-      child: const Text(
-        'Buat Pesanan',
-        style: TextStyle(color: Colors.white, fontSize: 18),
-      ),
+      child: isLoading
+          ? const CircularProgressIndicator(
+              color: Colors.white,
+            )
+          : const Text(
+              'Buat Pesanan',
+              style: TextStyle(color: Colors.white, fontSize: 18),
+            ),
     ),
   );
 }
+
 
 
   Future<void> _downloadQRIS() async {
