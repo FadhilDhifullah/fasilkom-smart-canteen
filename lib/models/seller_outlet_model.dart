@@ -1,51 +1,62 @@
 class SellerOutletModel {
   final String uid;
-  final String ownerName;
   final String shopName;
   final String email;
   final String phone;
   final String description;
-  final String openTime;
-  final String closeTime;
   final bool isShopOpen;
 
   SellerOutletModel({
     required this.uid,
-    required this.ownerName,
     required this.shopName,
     required this.email,
     required this.phone,
     required this.description,
-    required this.openTime,
-    required this.closeTime,
     required this.isShopOpen,
   });
 
+  // Mengubah data model menjadi Map untuk disimpan ke database
   Map<String, dynamic> toMap() {
     return {
       'uid': uid,
-      'ownerName': ownerName,
       'shopName': shopName,
       'email': email,
       'phone': phone,
       'description': description,
-      'openTime': openTime,
-      'closeTime': closeTime,
       'isShopOpen': isShopOpen,
     };
   }
 
+  // Membaca data dari Map dan mengubahnya menjadi objek SellerOutletModel
   static SellerOutletModel fromMap(Map<String, dynamic> map) {
     return SellerOutletModel(
       uid: map['uid'],
-      ownerName: map['ownerName'],
       shopName: map['shopName'],
       email: map['email'],
       phone: map['phone'],
       description: map['description'],
-      openTime: map['openTime'],
-      closeTime: map['closeTime'],
       isShopOpen: map['isShopOpen'],
+    );
+  }
+
+  // Method untuk memperbarui data yang ada, jika dibutuhkan
+  SellerOutletModel copyWith({
+    String? ownerName,
+    String? shopName,
+    String? email,
+    String? phone,
+    String? description,
+    String? openTime,
+    String? closeTime,
+    bool? isShopOpen,
+  }) {
+    return SellerOutletModel(
+      uid: this.uid,
+      shopName: shopName ?? this.shopName,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      description: description ?? this.description,
+      isShopOpen: isShopOpen ?? this.isShopOpen,
     );
   }
 }

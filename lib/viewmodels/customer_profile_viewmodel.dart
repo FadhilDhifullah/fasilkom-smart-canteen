@@ -1,11 +1,21 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:apilikasi_smart_canteen/models/customer_model.dart';
 
 class CustomerProfileViewModel {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  Future<void> resetPassword(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      throw 'Gagal mengirim email reset password: $e';
+    }
+  }
 
   Future<Customer?> fetchCustomerData(String uid) async {
     try {

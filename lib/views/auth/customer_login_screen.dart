@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:apilikasi_smart_canteen/views/customer_home_screen.dart'; // Ganti sesuai dengan nama file home screen customer Anda
+import 'package:apilikasi_smart_canteen/views/customer_main_screen.dart'; // Ganti sesuai dengan nama file home screen customer Anda
 import 'package:apilikasi_smart_canteen/viewmodels/auth_viewmodel.dart';
-
-
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 class CustomerLoginScreen extends StatefulWidget {
   const CustomerLoginScreen({Key? key}) : super(key: key);
 
@@ -61,10 +61,22 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen>
       );
 
       if (role == 'customer') {
-        // Navigasi ke CustomerHomeScreen
+        // Ambil data pengguna dari Firestore
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(FirebaseAuth.instance.currentUser!.uid)
+            .get();
+
+        // Navigasi ke CustomerMainScreen
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => CustomerHomeScreen()),
+          MaterialPageRoute(
+            builder: (context) => CustomerMainScreen(
+              uid: FirebaseAuth.instance.currentUser!.uid,
+              userData: userDoc.data() ?? {},
+              isGuest: false,
+            ),
+          ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

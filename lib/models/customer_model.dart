@@ -3,9 +3,10 @@ class Customer {
   final String fullName;
   final String email;
   final String phoneNumber;
-  final Map<String, String>? address; // Menyimpan provinsi, kota, kecamatan
-  final String? profilePicture;      // URL gambar profil
-  final String? nomorIndukMahasiswa; // NIM atau Nomor Induk Mahasiswa
+  final Map<String, String>? address; // Stores province, city, and subdistrict
+  final String? profilePicture;      // URL of the profile picture
+  final String? nomorIndukMahasiswa; // NIM or Student Identification Number
+  final bool? isEmailVerified;       // Email verification status
 
   Customer({
     required this.uid,
@@ -15,8 +16,10 @@ class Customer {
     this.address,
     this.profilePicture,
     this.nomorIndukMahasiswa,
+    this.isEmailVerified,
   });
 
+  /// Factory constructor to create a `Customer` instance from a map.
   factory Customer.fromMap(Map<String, dynamic> data) {
     return Customer(
       uid: data['uid'] ?? '',
@@ -28,9 +31,11 @@ class Customer {
           : null,
       profilePicture: data['profilePicture'] as String?,
       nomorIndukMahasiswa: data['nomorIndukMahasiswa'] as String?,
+      isEmailVerified: data['isEmailVerified'] as bool?,
     );
   }
 
+  /// Convert `Customer` instance to a map.
   Map<String, dynamic> toMap() {
     return {
       'uid': uid,
@@ -40,6 +45,7 @@ class Customer {
       if (address != null) 'address': address,
       if (profilePicture != null) 'profilePicture': profilePicture,
       if (nomorIndukMahasiswa != null) 'nomorIndukMahasiswa': nomorIndukMahasiswa,
+      if (isEmailVerified != null) 'isEmailVerified': isEmailVerified,
     };
   }
 }

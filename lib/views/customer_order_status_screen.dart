@@ -6,11 +6,8 @@ import '../viewmodels/order_status_viewmodel.dart';
 import 'package:apilikasi_smart_canteen/views/customer_review_screen.dart';
 import 'dart:io';
 
-
-
 class CustomerOrderStatusScreen extends StatefulWidget {
   final String buyerId;
-  
 
   const CustomerOrderStatusScreen({Key? key, required this.buyerId})
       : super(key: key);
@@ -176,10 +173,19 @@ class _CustomerOrderStatusScreenState
                         const Icon(Icons.error),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    firstItem?['menuName'] ?? 'Nama Menu Tidak Tersedia',
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        firstItem?['menuName'] ?? 'Nama Menu Tidak Tersedia',
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Kantin: ${order.canteenName ?? 'Tidak Diketahui'}',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -193,19 +199,28 @@ class _CustomerOrderStatusScreenState
               'Status: ${order.status}',
               style: const TextStyle(fontSize: 14),
             ),
-            if (firstItem != null && firstItem['notes'] != null && firstItem['notes'].isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  'Catatan: ${firstItem['notes']}',
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-              ),
             const SizedBox(height: 16),
             if ((order.items?.length ?? 0) > 1)
               TextButton(
                 onPressed: () => _showAllItems(order.items!),
                 child: const Text('Lihat Selengkapnya'),
+              ),
+            if (order.status == 'Belum Bayar')
+              ElevatedButton(
+                onPressed: () async {
+                  await FirebaseFirestore.instance
+                      .collection('orders')
+                      .doc(order.orderId)
+                      .update({'status': 'Batal'});
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Pesanan berhasil dibatalkan')),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                ),
+                child: const Text('Batalkan Pesanan'),
               ),
             if (order.status == 'Selesai')
               ElevatedButton(

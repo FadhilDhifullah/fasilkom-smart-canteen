@@ -252,6 +252,22 @@ class _CustomerCartScreenState extends State<CustomerCartScreen> {
       },
     );
   }
+Future<bool> _isShopOpen(String canteenId) async {
+  try {
+    final outletDoc = await FirebaseFirestore.instance
+        .collection('outlets')
+        .doc(canteenId)
+        .get();
+
+    if (outletDoc.exists) {
+      return outletDoc.data()?['isShopOpen'] ?? false;
+    }
+    return false;
+  } catch (e) {
+    print('Error checking shop status: $e');
+    return false;
+  }
+}
 
   Widget _buildBottomBar(BuildContext context, double totalPrice, Map<String, List<Map<String, dynamic>>> groupedItems) {
   return Container(
@@ -273,39 +289,53 @@ class _CustomerCartScreenState extends State<CustomerCartScreen> {
           ],
         ),
         ElevatedButton(
-          onPressed: () {
-            if (selectedItems.isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Pilih item yang ingin dipesan.')),
-              );
-              return;
-            }
+  onPressed: () async {
+    if (selectedItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih item yang ingin dipesan.')),
+      );
+      return;
+    }
 
-            final selectedCartItems = groupedItems.entries
-                .expand((entry) => entry.value)
-                .where((item) => selectedItems.contains(item['cartId']))
-                .toList();
+    final selectedCartItems = groupedItems.entries
+        .expand((entry) => entry.value)
+        .where((item) => selectedItems.contains(item['cartId']))
+        .toList();
 
-            if (selectedCartItems.isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Data item tidak valid.')),
-              );
-              return;
-            }
+    if (selectedCartItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Data item tidak valid.')),
+      );
+      return;
+    }
 
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CustomerOrderDetailScreen(
-                  selectedCartItems: selectedCartItems,
-                  totalPrice: totalPrice,
-                ),
-              ),
-            );
-          },
-          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFA31D)),
-          child: const Text('Pesan Sekarang'),
+    // Periksa status toko
+    final allShopsOpen = await Future.wait(
+      selectedCartItems.map((item) => _isShopOpen(item['canteenId'])),
+    );
+
+    if (allShopsOpen.contains(false)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Salah satu toko yang Anda pilih sedang tutup.')),
+      );
+      return;
+    }
+
+    // Lanjutkan ke halaman detail pesanan
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CustomerOrderDetailScreen(
+          selectedCartItems: selectedCartItems,
+          totalPrice: totalPrice,
         ),
+      ),
+    );
+  },
+  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFA31D)),
+  child: const Text('Pesan Sekarang'),
+),
+
       ],
     ),
   );

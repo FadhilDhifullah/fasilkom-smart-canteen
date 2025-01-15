@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../viewmodels/customer_profile_viewmodel.dart';
 import '../models/customer_model.dart';
 
@@ -22,6 +23,8 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
   final TextEditingController _provinceController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
   final TextEditingController _subdistrictController = TextEditingController();
+  final TextEditingController _fullNameController = TextEditingController();
+  final TextEditingController _phoneNumberController = TextEditingController();
 
   @override
   void initState() {
@@ -38,6 +41,8 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
         _provinceController.text = data?.address?['province'] ?? '';
         _cityController.text = data?.address?['city'] ?? '';
         _subdistrictController.text = data?.address?['subdistrict'] ?? '';
+        _fullNameController.text = data?.fullName ?? '';
+        _phoneNumberController.text = data?.phoneNumber ?? '';
         isLoading = false;
       });
     } catch (e) {
@@ -59,6 +64,8 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
           'city': _cityController.text,
           'subdistrict': _subdistrictController.text,
         },
+        'fullName': _fullNameController.text,
+        'phoneNumber': _phoneNumberController.text,
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Data berhasil diperbarui')),
@@ -67,6 +74,24 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal memperbarui data: $e')),
+      );
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    try {
+      final email = customerData?.email;
+      if (email == null || email.isEmpty) {
+        throw 'Email tidak tersedia untuk akun ini.';
+      }
+
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email reset password telah dikirim.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal mengirim email reset password: $e')),
       );
     }
   }
@@ -131,7 +156,9 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
             ),
             const SizedBox(height: 16),
 
-            // NIM dan Alamat
+            // Informasi Profil
+            _buildEditableField('Nama Lengkap', _fullNameController),
+            _buildEditableField('Nomor Telepon', _phoneNumberController),
             _buildEditableField('NIM', _nimController),
             _buildEditableField('Provinsi', _provinceController),
             _buildEditableField('Kota', _cityController),
@@ -149,6 +176,21 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                 ),
               ),
               child: const Text('Simpan Perubahan'),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Tombol Reset Password
+            ElevatedButton(
+              onPressed: _resetPassword,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                fixedSize: const Size(200, 40),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Reset Password'),
             ),
           ],
         ),
