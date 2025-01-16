@@ -86,16 +86,28 @@ class _CustomerRegistrationScreenState extends State<CustomerRegistrationScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Center(
-                        child: const Text(
-                          "Daftar sebagai customer",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,  // Mengatur posisi konten ke tengah
+                        children: [
+                          GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: const Icon(Icons.arrow_back, color: Colors.black),
                           ),
-                        ),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Text(
+                              "Daftar Sebagai Pembeli",
+                              textAlign: TextAlign.center,  // Memastikan teks berada di tengah
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
+
                       const SizedBox(height: 20),
                       // Input Fields
                       _buildInputField("Nama Lengkap", _fullNameController),
@@ -160,22 +172,6 @@ class _CustomerRegistrationScreenState extends State<CustomerRegistrationScreen>
                     ],
                   ),
                 ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 40,
-            left: 20,
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: const Icon(Icons.arrow_back, color: Colors.white),
               ),
             ),
           ),

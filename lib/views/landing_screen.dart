@@ -143,7 +143,7 @@ class LandingScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         padding: EdgeInsets.symmetric(
-                          horizontal: size.width * 0.07,
+                          horizontal: size.width * 0.05,
                           vertical: size.height * 0.02,
                         ),
                       ),
@@ -163,7 +163,7 @@ class LandingScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         padding: EdgeInsets.symmetric(
-                          horizontal: size.width * 0.07,
+                          horizontal: size.width * 0.05,
                           vertical: size.height * 0.02,
                         ),
                       ),

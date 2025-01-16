@@ -57,6 +57,7 @@ class MyApp extends StatelessWidget {
           return const Center(child: Text('Terjadi kesalahan.'));
         }
         return MaterialApp(
+          debugShowCheckedModeBanner: false,
           title: 'Smart Canteen',
           theme: ThemeData(
             primarySwatch: Colors.blue,

@@ -1,7 +1,9 @@
+
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';  // Tambahkan impor FirebaseAuth
-import '../../viewmodels/seller_outlet_viewmodel.dart';
-import '../../models/seller_outlet_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../viewmodels/seller_outlet_viewmodel.dart';
+import '../models/seller_outlet_model.dart';
+import 'landing_screen.dart';
 
 class SellerOutletScreen extends StatefulWidget {
   final String uid;
@@ -17,7 +19,6 @@ class _SellerOutletScreenState extends State<SellerOutletScreen> {
   SellerOutletModel? outletData;
   bool isLoading = true;
   bool isEditingPersonalInfo = false;
-  bool isEditingOperationalInfo = false;
 
   // Controllers for edit mode
   final TextEditingController _shopNameController = TextEditingController();
@@ -69,37 +70,42 @@ class _SellerOutletScreenState extends State<SellerOutletScreen> {
     }
   }
 
-  Future<void> _savePersonalInfo() async {
-    if (outletData != null) {
-      await _viewModel.updateOutletData(widget.uid, {
-
-        'shopName': _shopNameController.text,
-        'email': _emailController.text,
-        'phone': _phoneController.text,
-        'description': _descriptionController.text,
-      });
-      setState(() {
-        isEditingPersonalInfo = false;
-      });
+  Future<void> _logout() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) =>LandingScreen()),
+        (route) => false,
+      );
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Data pribadi berhasil diperbarui.')),
+        SnackBar(content: Text('Gagal logout: $e')),
       );
     }
   }
 
-
-
-  // Fungsi untuk mereset password
-  Future<void> _resetPassword() async {
-    try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: _emailController.text);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email reset password telah dikirim.')),
-      );
-    } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal mengirim email reset password: ${e.message}')),
-      );
+  Future<void> _showLogoutConfirmation() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Konfirmasi Logout'),
+        content: const Text('Apakah Anda yakin ingin logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+    if (shouldLogout == true) {
+      await _logout();
     }
   }
 
@@ -135,7 +141,12 @@ class _SellerOutletScreenState extends State<SellerOutletScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        automaticallyImplyLeading: false, // Hilangkan tombol kembali
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: _showLogoutConfirmation,
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -155,22 +166,14 @@ class _SellerOutletScreenState extends State<SellerOutletScreen> {
                   _buildEditableField('Deskripsi', _descriptionController, isEditingPersonalInfo),
                 ],
               ),
-              onSave: _savePersonalInfo,
-              onCancel: () {
-                setState(() {
-                  isEditingPersonalInfo = false;
-                });
+              onSave: () async {
+                setState(() => isEditingPersonalInfo = false);
+                // Simpan data
               },
-              onEdit: () {
-                setState(() {
-                  isEditingPersonalInfo = true;
-                });
-              },
+              onCancel: () => setState(() => isEditingPersonalInfo = false),
+              onEdit: () => setState(() => isEditingPersonalInfo = true),
             ),
             const SizedBox(height: 16),
-
-            // Jam Operasional
-           
 
             // Buka Toko
             Row(
@@ -193,19 +196,6 @@ class _SellerOutletScreenState extends State<SellerOutletScreen> {
                   },
                 ),
               ],
-            ),
-            const SizedBox(height: 16),
-
-            // Tombol Reset Password
-            ElevatedButton(
-              onPressed: _resetPassword,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFA31D),
-              ),
-              child: const Text(
-                'Reset Password',
-                style: TextStyle(color: Colors.white),
-              ),
             ),
           ],
         ),
@@ -254,18 +244,11 @@ class _SellerOutletScreenState extends State<SellerOutletScreen> {
               children: [
                 TextButton(
                   onPressed: onCancel,
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.white,
-                  ),
-                  child: const Text('Batal', style: TextStyle(color: Colors.black)),
+                  child: const Text('Batal'),
                 ),
-                const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: onSave,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFA31D),
-                  ),
-                  child: const Text('Simpan', style: TextStyle(color: Colors.white)),
+                  child: const Text('Simpan'),
                 ),
               ],
             ),
@@ -277,29 +260,11 @@ class _SellerOutletScreenState extends State<SellerOutletScreen> {
   Widget _buildEditableField(String label, TextEditingController controller, bool isEditing) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(label, style: const TextStyle(color: Colors.white)),
-          ),
-          Expanded(
-            flex: 3,
-            child: TextField(
-              controller: controller,
-              style: const TextStyle(color: Colors.white),
-              enabled: isEditing,
-              decoration: const InputDecoration(
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.white),
-                ),
-              ),
-            ),
-          ),
-        ],
+      child: TextField(
+        controller: controller,
+        enabled: isEditing,
+        decoration: InputDecoration(labelText: label),
       ),
     );
   }
-
-  
 }

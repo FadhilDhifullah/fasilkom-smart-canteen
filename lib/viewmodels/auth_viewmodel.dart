@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../services/firebase_service.dart';
 import '../models/seller_model.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 class AuthViewModel {
   final AuthService _authService = AuthService();
   final FirebaseService _firebaseService = FirebaseService();
@@ -54,7 +54,14 @@ class AuthViewModel {
       rethrow;
     }
   }
-
+Future<Map<String, dynamic>> getUserData(String uid) async {
+    try {
+      final doc = await FirebaseFirestore.instance.collection('customers').doc(uid).get();
+      return doc.data() ?? {};
+    } catch (e) {
+      throw 'Gagal mengambil data pengguna: $e';
+    }
+  }
   /// **Login untuk Penjual dan Pelanggan**
   Future<String> login(String email, String password) async {
     try {

@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.fasilkomsmartcanteen.app">
-
+ <!-- Tambahkan izin ini untuk mengunduh file -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <application
         android:label="apilikasi_smart_canteen"
         android:name="${applicationName}"

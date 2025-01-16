@@ -3,7 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'customer_order_status_screen.dart';
-
+import 'dart:io';
+import 'package:dio/dio.dart';
+import 'package:permission_handler/permission_handler.dart';
 class CustomerOrderDetailScreen extends StatefulWidget {
   final List<Map<String, dynamic>> selectedCartItems;
   final double totalPrice;
@@ -143,8 +145,12 @@ Future<void> _moveCartToOrders() async {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Detail Pesanan'),
-        backgroundColor: const Color(0xFF5DAA80),
+       
+        title: const Text( 'Pesanan',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,)),
+        backgroundColor: const Color(0xFF20452C),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () async {
@@ -423,10 +429,30 @@ Future<void> _moveCartToOrders() async {
   Future<void> _downloadQRIS() async {
   if (_qrisUrl != null) {
     try {
-      Clipboard.setData(ClipboardData(text: _qrisUrl!));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Link QRIS disalin ke clipboard')),
-      );
+      // Meminta izin akses penyimpanan
+      if (await Permission.storage.request().isGranted) {
+        // Tentukan direktori unduhan umum
+        final directory = Directory('/storage/emulated/0/Download');
+        if (!directory.existsSync()) {
+          directory.createSync(recursive: true);
+        }
+
+        // Lokasi file unduhan
+        final filePath = '${directory.path}/qris.png';
+
+        // Unduh gambar menggunakan Dio
+        final dio = Dio();
+        await dio.download(_qrisUrl!, filePath);
+
+        // Tampilkan notifikasi keberhasilan
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('QRIS berhasil diunduh ke $filePath')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Izin penyimpanan ditolak')),
+        );
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal mengunduh QRIS: $e')),

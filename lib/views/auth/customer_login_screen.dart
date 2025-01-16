@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:apilikasi_smart_canteen/views/customer_main_screen.dart'; // Ganti sesuai dengan nama file home screen customer Anda
+import 'package:apilikasi_smart_canteen/views/customer_main_screen.dart';
 import 'package:apilikasi_smart_canteen/viewmodels/auth_viewmodel.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
+
 class CustomerLoginScreen extends StatefulWidget {
   const CustomerLoginScreen({Key? key}) : super(key: key);
 
@@ -48,49 +48,99 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen>
   }
 
   Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+  setState(() {
+    _isLoading = true;
+  });
 
-    try {
-      final role = await _authViewModel.login(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-      );
+  try {
+    final role = await _authViewModel.login(
+      _emailController.text.trim(),
+      _passwordController.text.trim(),
+    );
 
-      if (role == 'customer') {
-        // Ambil data pengguna dari Firestore
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .get();
-
-        // Navigasi ke CustomerMainScreen
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CustomerMainScreen(
-              uid: FirebaseAuth.instance.currentUser!.uid,
-              userData: userDoc.data() ?? {},
-              isGuest: false,
-            ),
+    if (role == 'customer') {
+      final userData = await _authViewModel.getUserData(FirebaseAuth.instance.currentUser!.uid);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CustomerMainScreen(
+            uid: FirebaseAuth.instance.currentUser!.uid,
+            userData: userData,
+            isGuest: false,
           ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Akun Anda bukan sebagai customer!')),
+      );
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Gagal masuk: $e')),
+    );
+  } finally {
+    setState(() {
+      _isLoading = false;
+    });
+  }
+}
+
+
+  Future<void> _sendPasswordResetEmail() async {
+    if (_emailController.text.trim().isEmpty) {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Masukkan Email'),
+            content: TextFormField(
+              controller: _emailController,
+              decoration: const InputDecoration(
+                hintText: 'Masukkan email Anda',
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Email tidak boleh kosong';
+                }
+                return null;
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Batal'),
+              ),
+              TextButton(
+                onPressed: () {
+                  if (_emailController.text.isNotEmpty) {
+                    Navigator.of(context).pop();
+                    _sendPasswordResetEmail();
+                  }
+                },
+                child: const Text('Kirim'),
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      try {
+        await FirebaseAuth.instance.sendPasswordResetEmail(
+          email: _emailController.text.trim(),
         );
-      } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Akun Anda bukan sebagai customer!')),
+          const SnackBar(content: Text('Link reset password telah dikirim ke email Anda')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal mengirim email: $e')),
         );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal masuk: $e')),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
@@ -127,6 +177,29 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen>
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back),
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                          ),
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                "Masuk Sebagai Pembeli",  // Changed text here
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
                       const Text(
                         "Email",
                         style: TextStyle(
@@ -206,6 +279,19 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen>
                                     fontSize: 15,
                                   ),
                                 ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Center(
+                        child: GestureDetector(
+                          onTap: _sendPasswordResetEmail,
+                          child: const Text(
+                            "Lupa Kata Sandi?",
+                            style: TextStyle(
+                              color: Color(0xFF5DAA80),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
                     ],

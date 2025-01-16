@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../../models/seller_model.dart';
 import '../../viewmodels/auth_viewmodel.dart';
+import 'canteen_seller_login_screen.dart'; // Pastikan import login screen
 
 class CanteenSellerRegistrationScreen extends StatefulWidget {
   const CanteenSellerRegistrationScreen({Key? key}) : super(key: key);
@@ -163,15 +164,27 @@ class _CanteenSellerRegistrationScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Center(
-                        child: Text(
-                          "Daftar sebagai penjual",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back),
+                            onPressed: () {
+                              Navigator.pop(context);  // Menavigasi kembali ke layar sebelumnya
+                            },
                           ),
-                        ),
+                          const Expanded(
+                            child: Center(
+                              child: Text(
+                                "Daftar sebagai penjual",
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 20),
                       _buildInputField(
@@ -241,6 +254,27 @@ class _CanteenSellerRegistrationScreenState
                                     fontSize: 15,
                                   ),
                                 ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Center(
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const CanteenSellerLoginScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            "Sudah punya akun? Masuk",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF5DAA80),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
                     ],

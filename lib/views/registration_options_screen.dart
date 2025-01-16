@@ -180,24 +180,7 @@ class _RegistrationOptionsScreenState
                     const SizedBox(height: 20),
 
                     // Link masuk akun
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const CanteenSellerLoginScreen(),
-                          ),
-                        );
-                      },
-                      child: const Text(
-                        "Sudah punya akun? Masuk",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF5DAA80),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+                    
                   ],
                 ),
               ),

@@ -22,6 +22,7 @@ class _CustomerOrderStatusScreenState
   final OrderStatusViewModel _viewModel = OrderStatusViewModel();
   late TabController _tabController;
   Map<String, File?> _selectedProofImages = {};
+  Map<String, bool> _proofUploaded = {};
   String customerName = 'Nama Tidak Diketahui';
   bool isLoading = false;
 
@@ -75,6 +76,10 @@ class _CustomerOrderStatusScreenState
           'status': 'Menunggu Konfirmasi Penjual',
         });
 
+        setState(() {
+          _proofUploaded[orderId] = true;
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Bukti pembayaran berhasil diunggah')),
         );
@@ -96,56 +101,9 @@ class _CustomerOrderStatusScreenState
     if (pickedFile != null) {
       setState(() {
         _selectedProofImages[orderId] = File(pickedFile.path);
+        _proofUploaded[orderId] = false;
       });
     }
-  }
-
-  void _showAllItems(List<dynamic> items) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Daftar Menu'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
-              return ListTile(
-                leading: Image.network(
-                  item?['imageUrl'] ?? 'https://via.placeholder.com/150',
-                  width: 50,
-                  height: 50,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.error),
-                ),
-                title: Text(item?['menuName'] ?? 'Nama Tidak Diketahui'),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                        'x${item?['quantity'] ?? 0} - Rp ${item?['price'] ?? 0}'),
-                    if (item?['notes'] != null && item['notes'].isNotEmpty)
-                      Text(
-                        'Catatan: ${item['notes']}',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Tutup'),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildStatusCard(OrderStatusModel order) {
@@ -189,7 +147,7 @@ class _CustomerOrderStatusScreenState
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(width: 8),
             ] else
               const Text(
                 'Tidak ada item dalam pesanan.',
@@ -200,28 +158,59 @@ class _CustomerOrderStatusScreenState
               style: const TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 16),
-            if ((order.items?.length ?? 0) > 1)
-              TextButton(
-                onPressed: () => _showAllItems(order.items!),
-                child: const Text('Lihat Selengkapnya'),
-              ),
-            if (order.status == 'Belum Bayar')
-              ElevatedButton(
-                onPressed: () async {
-                  await FirebaseFirestore.instance
-                      .collection('orders')
-                      .doc(order.orderId)
-                      .update({'status': 'Batal'});
+            if (order.status == 'Belum Bayar') ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        await FirebaseFirestore.instance
+                            .collection('orders')
+                            .doc(order.orderId)
+                            .update({'status': 'Batal'});
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Pesanan berhasil dibatalkan')),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                ),
-                child: const Text('Batalkan Pesanan'),
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Pesanan berhasil dibatalkan')),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      ),
+                      child: const Text('Batalkan', style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (_selectedProofImages[order.orderId] != null && !_proofUploaded[order.orderId]!) {
+                          await _uploadProof(order.orderId);
+                        } else {
+                          await _pickImage(order.orderId);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF5DAA80),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      ),
+                      child: Text(
+                        _selectedProofImages[order.orderId] != null && !_proofUploaded[order.orderId]!
+                            ? 'Kirim Bukti'
+                            : 'Pilih Bukti',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
               ),
+            ],
             if (order.status == 'Selesai')
               ElevatedButton(
                 onPressed: () {
@@ -240,15 +229,31 @@ class _CustomerOrderStatusScreenState
                         customerProfileImage:
                             'https://via.placeholder.com/150',
                         items: order.items ?? [],
+                        isReadOnly: false, 
                       ),
                     ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFFA31D),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                child: const Text('Beri Ulasan'),
+                child: const Text('Beri Ulasan', style: TextStyle(color: Colors.white)),
               ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade400),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Catatan: ${order.items?.first['notes'] ?? 'Tidak ada catatan'}',
+                style: const TextStyle(fontSize: 14, color: Colors.black),
+              ),
+            ),
           ],
         ),
       ),
@@ -292,21 +297,45 @@ class _CustomerOrderStatusScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pesanan'),
-        backgroundColor: const Color(0xFF5DAA80),
+        title: const Text( 'Pesanan',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,)),
+        automaticallyImplyLeading: false,
+        backgroundColor: const Color(0xFF20452C),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
           isScrollable: true,
           labelPadding: const EdgeInsets.symmetric(horizontal: 16),
-          labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-          tabs: const [
-            Tab(text: 'Belum Bayar'),
-            Tab(text: 'Menunggu Konfirmasi'),
-            Tab(text: 'Dalam Proses'),
-            Tab(text: 'Selesai'),
-            Tab(text: 'Batal'),
-          ],
+          labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+          unselectedLabelColor: const Color.fromARGB(255, 180, 160, 160),
+          tabs: List.generate(5, (index) {
+            return Tab(
+              child: AnimatedBuilder(
+                animation: _tabController.animation!,
+                builder: (context, child) {
+                  final selected = _tabController.index == index;
+                  return Text(
+                    ['Belum Bayar', 'Menunggu Konfirmasi', 'Dalam Proses', 'Selesai', 'Batal'][index],
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      shadows: selected
+                          ? [
+                              Shadow(
+                                color: Colors.white.withOpacity(0.8),
+                                blurRadius: 10,
+                              ),
+                            ]
+                          : null,
+                    ),
+                  );
+                },
+              ),
+            );
+          }),
         ),
       ),
       body: TabBarView(

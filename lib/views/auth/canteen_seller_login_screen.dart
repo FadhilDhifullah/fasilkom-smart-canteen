@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../seller_main_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class CanteenSellerLoginScreen extends StatefulWidget {
   const CanteenSellerLoginScreen({Key? key}) : super(key: key);
@@ -60,13 +61,13 @@ class _CanteenSellerLoginScreenState extends State<CanteenSellerLoginScreen>
           _passwordController.text.trim(),
         );
 
-        // Login berhasil, navigasi ke halaman SellerHomeScreen
+        // Login berhasil, navigasi ke halaman SellerMainScreen
         Navigator.pushReplacement(
-  context,
-  MaterialPageRoute(
-    builder: (context) => SellerMainScreen(uid: _authViewModel.currentUser!.uid),
-  ),
-);
+          context,
+          MaterialPageRoute(
+            builder: (context) => SellerMainScreen(uid: _authViewModel.currentUser!.uid),
+          ),
+        );
 
       } catch (e) {
         _showErrorDialog(e.toString());
@@ -74,6 +75,64 @@ class _CanteenSellerLoginScreenState extends State<CanteenSellerLoginScreen>
         setState(() {
           _isLoading = false;
         });
+      }
+    }
+  }
+
+  Future<void> _sendPasswordResetEmail() async {
+    // Periksa apakah email sudah diisi
+    if (_emailController.text.trim().isEmpty) {
+      // Tampilkan dialog untuk meminta email
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Masukkan Email'),
+            content: TextFormField(
+              controller: _emailController,
+              decoration: const InputDecoration(
+                hintText: 'Masukkan email Anda',
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Email tidak boleh kosong';
+                }
+                return null;
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Tutup dialog
+                },
+                child: const Text('Batal'),
+              ),
+              TextButton(
+                onPressed: () {
+                  if (_emailController.text.isNotEmpty) {
+                    Navigator.of(context).pop(); // Tutup dialog
+                    _sendPasswordResetEmail(); // Kirim reset password
+                  }
+                },
+                child: const Text('Kirim'),
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      // Jika email sudah diisi, langsung kirimkan permintaan reset password
+      try {
+        await FirebaseAuth.instance.sendPasswordResetEmail(
+          email: _emailController.text.trim(),
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Link reset password telah dikirim ke email Anda')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal mengirim email: $e')),
+        );
       }
     }
   }
@@ -232,6 +291,19 @@ class _CanteenSellerLoginScreenState extends State<CanteenSellerLoginScreen>
                                     fontSize: 15,
                                   ),
                                 ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Center(
+                        child: GestureDetector(
+                          onTap: _sendPasswordResetEmail,
+                          child: const Text(
+                            "Lupa Kata Sandi?",
+                            style: TextStyle(
+                              color: Color(0xFF5DAA80),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
                     ],

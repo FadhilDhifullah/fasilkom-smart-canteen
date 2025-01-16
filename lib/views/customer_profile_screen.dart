@@ -2,8 +2,10 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../viewmodels/customer_profile_viewmodel.dart';
 import '../models/customer_model.dart';
+import 'landing_screen.dart';
 
 class CustomerProfileScreen extends StatefulWidget {
   final String uid;
@@ -53,6 +55,45 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
         isLoading = false;
       });
     }
+  }
+
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Konfirmasi Logout'),
+        content: const Text('Apakah Anda yakin ingin keluar?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await FirebaseAuth.instance.signOut();
+                prefs.remove('lastLoginRole'); // Hapus data sesi
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => LandingScreen()),
+                  (route) => false,
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Gagal logout: $e')),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _updateProfile() async {
@@ -136,14 +177,16 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF114232),
-        title: const Text('Akun', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Akun',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Foto Profil
             GestureDetector(
               onTap: _pickAndUploadImage,
               child: CircleAvatar(
@@ -155,8 +198,6 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Informasi Profil
             _buildEditableField('Nama Lengkap', _fullNameController),
             _buildEditableField('Nomor Telepon', _phoneNumberController),
             _buildEditableField('NIM', _nimController),
@@ -164,8 +205,6 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
             _buildEditableField('Kota', _cityController),
             _buildEditableField('Kecamatan', _subdistrictController),
             const SizedBox(height: 24),
-
-            // Tombol Simpan
             ElevatedButton(
               onPressed: _updateProfile,
               style: ElevatedButton.styleFrom(
@@ -177,10 +216,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
               ),
               child: const Text('Simpan Perubahan'),
             ),
-
             const SizedBox(height: 16),
-
-            // Tombol Reset Password
             ElevatedButton(
               onPressed: _resetPassword,
               style: ElevatedButton.styleFrom(
@@ -191,6 +227,18 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                 ),
               ),
               child: const Text('Reset Password'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _logout,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                fixedSize: const Size(200, 40),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Logout'),
             ),
           ],
         ),

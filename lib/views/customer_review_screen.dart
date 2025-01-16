@@ -1,30 +1,32 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:flutter/material.dart';
 import '../models/review_model.dart';
 import '../viewmodels/review_viewmodel.dart';
 
 class CustomerReviewScreen extends StatefulWidget {
   final String canteenId;
-  final String menuId;
-  final String orderId;
-  final String menuName;
-  final String menuImageUrl;
-  final String customerId;
-  final String customerName;
-  final String customerProfileImage;
-  final List<dynamic> items;
+  final String? menuId; // Opsional
+  final String? orderId; // Opsional
+  final String? menuName; // Opsional
+  final String? menuImageUrl; // Opsional
+  final String? customerId; // Opsional
+  final String? customerName; // Opsional
+  final String? customerProfileImage; // Opsional
+  final List<dynamic>? items; // Opsional
+  final bool isReadOnly;
 
   const CustomerReviewScreen({
     Key? key,
     required this.canteenId,
-    required this.menuId,
-    required this.orderId,
-    required this.menuName,
-    required this.menuImageUrl,
-    required this.customerId,
-    required this.customerName,
-    required this.customerProfileImage,
-    required this.items,
+    this.menuId,
+    this.orderId,
+    this.menuName,
+    this.menuImageUrl,
+    this.customerId,
+    this.customerName,
+    this.customerProfileImage,
+    this.items,
+    this.isReadOnly = true,
   }) : super(key: key);
 
   @override
@@ -33,57 +35,20 @@ class CustomerReviewScreen extends StatefulWidget {
 
 class _CustomerReviewScreenState extends State<CustomerReviewScreen> {
   final ReviewViewModel _viewModel = ReviewViewModel();
-  int rating = 0;
-  final TextEditingController reviewController = TextEditingController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController reviewController = TextEditingController();
   String _searchQuery = '';
-  String? customerProfileImage;
+  int rating = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchCustomerProfileImage();
-  }
-
-  Future<void> _fetchCustomerProfileImage() async {
-    try {
-      final customerDoc = await FirebaseFirestore.instance
-          .collection('customers')
-          .doc(widget.customerId)
-          .get();
-
-      setState(() {
-        customerProfileImage =
-            customerDoc.data()?['profilePicture'] ?? widget.customerProfileImage;
-      });
-    } catch (e) {
-      print('Error fetching customer profile image: $e');
-      setState(() {
-        customerProfileImage = widget.customerProfileImage;
-      });
-    }
-  }
-
-  void _showReviewDialog({ReviewModel? review}) async {
-    if (review == null) {
-      final reviewExists = await FirebaseFirestore.instance
-          .collection('reviews')
-          .where('orderId', isEqualTo: widget.orderId)
-          .get();
-
-      if (reviewExists.docs.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pesanan ini sudah diulas')),
-        );
-        return;
-      }
-    }
+  void _showReviewDialog({ReviewModel? review}) {
+    if (widget.isReadOnly) return;
 
     reviewController.text = review?.reviewText ?? '';
     rating = review?.rating ?? 0;
 
-    final String combinedMenuNames =
-        widget.items.map((item) => item['menuName'] ?? '').join(', ');
+    final String combinedMenuNames = widget.items != null && widget.items!.isNotEmpty
+        ? widget.items!.map((item) => item['menuName'] ?? '').join(', ')
+        : 'Tidak ada menu yang dipesan';
 
     showDialog(
       context: context,
@@ -143,13 +108,13 @@ class _CustomerReviewScreenState extends State<CustomerReviewScreen> {
                               final newReview = ReviewModel(
                                 reviewId: '',
                                 canteenId: widget.canteenId,
-                                menuId: widget.menuId,
-                                orderId: widget.orderId,
+                                menuId: widget.menuId ?? '',
+                                orderId: widget.orderId ?? '',
                                 menuName: combinedMenuNames,
-                                menuImageUrl: widget.menuImageUrl,
-                                customerId: widget.customerId,
-                                customerName: widget.customerName,
-                                customerProfileImage: customerProfileImage!,
+                                menuImageUrl: widget.menuImageUrl ?? '',
+                                customerId: widget.customerId ?? '',
+                                customerName: widget.customerName ?? 'Tidak Diketahui',
+                                customerProfileImage: widget.customerProfileImage ?? '',
                                 reviewText: reviewController.text,
                                 rating: rating,
                                 timestamp: DateTime.now(),
@@ -183,9 +148,13 @@ class _CustomerReviewScreenState extends State<CustomerReviewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF114232),
-        title: const Text('Ulasan'),
+        backgroundColor: const Color(0xFF20452C),
+        title: const Text('Ulasan', style: TextStyle(color: Colors.white)),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Column(
         children: [
@@ -235,15 +204,13 @@ class _CustomerReviewScreenState extends State<CustomerReviewScreen> {
                               children: [
                                 review.customerProfileImage.isNotEmpty
                                     ? CircleAvatar(
-                                        backgroundImage:
-                                            NetworkImage(review.customerProfileImage),
+                                        backgroundImage: NetworkImage(review.customerProfileImage),
                                       )
                                     : const Icon(Icons.account_circle, size: 40),
                                 const SizedBox(width: 8),
                                 Text(
                                   review.customerName,
-                                  style: const TextStyle(
-                                      fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
@@ -264,23 +231,25 @@ class _CustomerReviewScreenState extends State<CustomerReviewScreen> {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const SizedBox(height: 8),
                                   const Text(
                                     'Balasan Penjual:',
                                     style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.green),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green,
+                                    ),
                                   ),
                                   Row(
                                     children: [
-                                      review.replyProfileImage != null
-                                          ? CircleAvatar(
-                                              backgroundImage: NetworkImage(
-                                                  review.replyProfileImage!),
-                                              radius: 15,
-                                            )
-                                          : const Icon(Icons.store, size: 30),
+                                      if (review.replyProfileImage != null &&
+                                          review.replyProfileImage!.isNotEmpty)
+                                        CircleAvatar(
+                                          backgroundImage:
+                                              NetworkImage(review.replyProfileImage!),
+                                          radius: 15,
+                                        )
+                                      else
+                                        const Icon(Icons.store, size: 30),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
@@ -303,13 +272,13 @@ class _CustomerReviewScreenState extends State<CustomerReviewScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _showReviewDialog();
-        },
-        backgroundColor: const Color(0xFFFFA31D),
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+            floatingActionButton: widget.isReadOnly
+          ? null
+          : FloatingActionButton(
+              onPressed: () => _showReviewDialog(),
+              backgroundColor: const Color(0xFFFFA31D),
+              child: const Icon(Icons.add, color: Colors.white),
+            ),
     );
   }
 }

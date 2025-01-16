@@ -30,44 +30,6 @@ class _SellerOrderStatusScreenState extends State<SellerOrderStatusScreen>
     super.dispose();
   }
 
-  void _showAllItems(List<dynamic> items) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Daftar Menu'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
-              return ListTile(
-                leading: Image.network(
-                  item?['imageUrl'] ?? 'https://via.placeholder.com/150',
-                  width: 50,
-                  height: 50,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.error),
-                ),
-                title: Text(item?['menuName'] ?? 'Nama Tidak Diketahui'),
-                subtitle: Text(
-                    'x${item?['quantity'] ?? 0} - Rp ${item?['price'] ?? 0}'),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Tutup'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showProofImage(String? imageUrl) {
     if (imageUrl == null) return;
     showDialog(
@@ -136,11 +98,6 @@ class _SellerOrderStatusScreenState extends State<SellerOrderStatusScreen>
                 ],
               ),
               const SizedBox(height: 8),
-              if (firstItem != null && firstItem['notes'] != null && firstItem['notes'].isNotEmpty)
-                Text(
-                  'Catatan: ${firstItem['notes']}',
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                ),
             ] else
               const Text(
                 'Tidak ada item dalam pesanan.',
@@ -151,38 +108,69 @@ class _SellerOrderStatusScreenState extends State<SellerOrderStatusScreen>
               style: const TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 16),
-            if (order.items.length > 1)
-              TextButton(
-                onPressed: () => _showAllItems(order.items),
-                child: const Text('Lihat Selengkapnya'),
-              ),
-            if (order.proofImageUrl != null)
+            if (order.proofImageUrl != null &&
+                order.paymentMethod == 'QRIS' &&
+                order.status == 'Menunggu Konfirmasi Penjual')
               ElevatedButton(
                 onPressed: () => _showProofImage(order.proofImageUrl),
-                child: const Text('Lihat Bukti Pembayaran'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey.shade300,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text('Lihat Bukti Pembayaran',
+                    style: TextStyle(color: Colors.black)),
               ),
             Row(
               children: [
                 if (order.status == 'Menunggu Konfirmasi Penjual')
-                  ElevatedButton(
-                    onPressed: () =>
-                        _viewModel.updateOrderStatus(order.orderId, 'Dalam Proses'),
-                    child: const Text('Konfirmasi'),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () =>
+                          _viewModel.updateOrderStatus(order.orderId, 'Dalam Proses'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text('Konfirmasi',
+                          style: TextStyle(color: Colors.white)),
+                    ),
                   ),
                 if (order.status == 'Dalam Proses')
-                  ElevatedButton(
-                    onPressed: () =>
-                        _viewModel.updateOrderStatus(order.orderId, 'Selesai'),
-                    child: const Text('Selesai'),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () =>
+                          _viewModel.updateOrderStatus(order.orderId, 'Selesai'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text('Selesai',
+                          style: TextStyle(color: Colors.white)),
+                    ),
                   ),
+                const SizedBox(width: 8),
                 if ((order.status == 'Menunggu Konfirmasi Penjual' ||
                     order.status == 'Dalam Proses') &&
                     order.status != 'Selesai')
-                  ElevatedButton(
-                    onPressed: () =>
-                        _viewModel.updateOrderStatus(order.orderId, 'Batal'),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                    child: const Text('Batalkan'),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () =>
+                          _viewModel.updateOrderStatus(order.orderId, 'Batal'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text('Batalkan',
+                          style: TextStyle(color: Colors.white)),
+                    ),
                   ),
               ],
             ),
@@ -235,20 +223,46 @@ class _SellerOrderStatusScreenState extends State<SellerOrderStatusScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF5DAA80),
-        title: const Text('Status Pesanan'),
-        automaticallyImplyLeading: false,
+        backgroundColor: Colors.white,
+        title: const Text(
+          'Status Pesanan',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
+          indicatorColor: Colors.black,
           isScrollable: true,
-          indicatorColor: Colors.white,
-          tabs: const [
-            Tab(text: 'Menunggu Konfirmasi'),
-            Tab(text: 'Dalam Proses'),
-            Tab(text: 'Selesai'),
-            Tab(text: 'Batal'),
-          ],
+          labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+          labelStyle:
+              const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          unselectedLabelColor: Colors.grey,
+          tabs: List.generate(4, (index) {
+            return Tab(
+              child: AnimatedBuilder(
+                animation: _tabController.animation!,
+                builder: (context, child) {
+                  final selected = _tabController.index == index;
+                  return Text(
+                    ['Menunggu Konfirmasi', 'Dalam Proses', 'Selesai', 'Batal'][index],
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: selected ? Colors.black : Colors.grey,
+                      shadows: selected
+                          ? [
+                              Shadow(
+                                color: Colors.black.withOpacity(0.3),
+                                blurRadius: 8,
+                              ),
+                            ]
+                          : null,
+                    ),
+                  );
+                },
+              ),
+            );
+          }),
         ),
       ),
       body: TabBarView(
