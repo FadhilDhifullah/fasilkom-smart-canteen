@@ -121,11 +121,10 @@ class _SellerMenuDetailScreenState extends State<SellerMenuDetailScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         actions: [
           if (_isDeleteMode)

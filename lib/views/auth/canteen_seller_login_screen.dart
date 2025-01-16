@@ -7,8 +7,7 @@ class CanteenSellerLoginScreen extends StatefulWidget {
   const CanteenSellerLoginScreen({Key? key}) : super(key: key);
 
   @override
-  State<CanteenSellerLoginScreen> createState() =>
-      _CanteenSellerLoginScreenState();
+  State<CanteenSellerLoginScreen> createState() => _CanteenSellerLoginScreenState();
 }
 
 class _CanteenSellerLoginScreenState extends State<CanteenSellerLoginScreen>
@@ -56,83 +55,27 @@ class _CanteenSellerLoginScreenState extends State<CanteenSellerLoginScreen>
       });
 
       try {
-        await _authViewModel.login(
+        final role = await _authViewModel.login(
           _emailController.text.trim(),
           _passwordController.text.trim(),
         );
 
-        // Login berhasil, navigasi ke halaman SellerMainScreen
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => SellerMainScreen(uid: _authViewModel.currentUser!.uid),
-          ),
-        );
-
+        if (role == 'seller') {
+          // Login berhasil, navigasi ke halaman SellerMainScreen
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SellerMainScreen(uid: _authViewModel.currentUser!.uid),
+            ),
+          );
+        }
       } catch (e) {
+        // Tampilkan pesan error, misalnya karena belum diverifikasi
         _showErrorDialog(e.toString());
       } finally {
         setState(() {
           _isLoading = false;
         });
-      }
-    }
-  }
-
-  Future<void> _sendPasswordResetEmail() async {
-    // Periksa apakah email sudah diisi
-    if (_emailController.text.trim().isEmpty) {
-      // Tampilkan dialog untuk meminta email
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('Masukkan Email'),
-            content: TextFormField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                hintText: 'Masukkan email Anda',
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Email tidak boleh kosong';
-                }
-                return null;
-              },
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Tutup dialog
-                },
-                child: const Text('Batal'),
-              ),
-              TextButton(
-                onPressed: () {
-                  if (_emailController.text.isNotEmpty) {
-                    Navigator.of(context).pop(); // Tutup dialog
-                    _sendPasswordResetEmail(); // Kirim reset password
-                  }
-                },
-                child: const Text('Kirim'),
-              ),
-            ],
-          );
-        },
-      );
-    } else {
-      // Jika email sudah diisi, langsung kirimkan permintaan reset password
-      try {
-        await FirebaseAuth.instance.sendPasswordResetEmail(
-          email: _emailController.text.trim(),
-        );
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Link reset password telah dikirim ke email Anda')),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal mengirim email: $e')),
-        );
       }
     }
   }
@@ -291,19 +234,6 @@ class _CanteenSellerLoginScreenState extends State<CanteenSellerLoginScreen>
                                     fontSize: 15,
                                   ),
                                 ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Center(
-                        child: GestureDetector(
-                          onTap: _sendPasswordResetEmail,
-                          child: const Text(
-                            "Lupa Kata Sandi?",
-                            style: TextStyle(
-                              color: Color(0xFF5DAA80),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
                         ),
                       ),
                     ],

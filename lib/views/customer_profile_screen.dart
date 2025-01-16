@@ -74,7 +74,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
             onPressed: () async {
               try {
                 await FirebaseAuth.instance.signOut();
-                prefs.remove('lastLoginRole'); // Hapus data sesi
+                prefs.remove('lastLoginRole');
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (context) => LandingScreen()),
@@ -88,8 +88,14 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            child: const Text('Logout'),
+            child: const Text(
+              'Logout',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -209,36 +215,42 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
               onPressed: _updateProfile,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFFA31D),
-                fixedSize: const Size(200, 40),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text('Simpan Perubahan'),
+              child: const Text(
+                'Simpan Perubahan',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _resetPassword,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
-                fixedSize: const Size(200, 40),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text('Reset Password'),
+              child: const Text(
+                'Reset Password',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _logout,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
-                fixedSize: const Size(200, 40),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text('Logout'),
+              child: const Text(
+                'Logout',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),

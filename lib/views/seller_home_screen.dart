@@ -1,12 +1,21 @@
 
 import 'package:flutter/material.dart';
 import '../../viewmodels/seller_home_viewmodel.dart';
-
+import 'package:intl/intl.dart';
 import 'seller_menu_category_screen.dart';
 import 'seller_sales_report_screen.dart';
 import 'seller_payment_methods_screen.dart';
 import 'seller_stock_screen.dart';
 import 'seller_review_screen.dart';
+
+String formatCurrency(num value) {
+  final formatter = NumberFormat.currency(
+    locale: 'id_ID',
+    symbol: 'Rp ',
+    decimalDigits: 0,
+  );
+  return formatter.format(value);
+}
 
 class SellerHomeScreen extends StatefulWidget {
   final String uid;
@@ -87,6 +96,7 @@ class _SellerHomeScreenState extends State<SellerHomeScreen> {
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+        automaticallyImplyLeading: false,
       ),
       body: RefreshIndicator(
         onRefresh: _loadHomeData,
@@ -131,7 +141,7 @@ class _SellerHomeScreenState extends State<SellerHomeScreen> {
                     Container(width: 1, height: 80, color: Colors.white),
                     _buildTransactionInfo(
                       title: 'Pemasukan Hari Ini',
-                      value: 'Rp ${transactions['dailyIncome'].toStringAsFixed(2)}',
+                      value: formatCurrency(transactions['dailyIncome']),
                     ),
                   ],
                 ),

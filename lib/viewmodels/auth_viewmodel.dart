@@ -2,7 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../services/firebase_service.dart';
 import '../models/seller_model.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
+
 class AuthViewModel {
   final AuthService _authService = AuthService();
   final FirebaseService _firebaseService = FirebaseService();
@@ -10,7 +11,16 @@ class AuthViewModel {
   // Mendapatkan pengguna yang sedang login
   User? get currentUser => _authService.currentUser;
 
-  /// **Pendaftaran Penjual**
+  Future<Map<String, dynamic>> getUserData(String uid) async {
+  try {
+    return await _firebaseService.getUserData(uid);
+  } catch (e) {
+    print("Error fetching user data: $e");
+    rethrow;
+  }
+}
+
+  /// *Pendaftaran Penjual*
   Future<void> registerSeller(SellerModel seller, String password) async {
     try {
       final user = await _authService.registerWithEmailAndPassword(seller.email, password);
@@ -18,6 +28,7 @@ class AuthViewModel {
         final sellerData = seller.toMap();
         sellerData['uid'] = user.uid;
         sellerData['role'] = 'seller'; // Tambahkan peran sebagai seller
+        sellerData['verified'] = false; // Tambahkan status verifikasi
 
         // Simpan data penjual di Firestore
         await _firebaseService.saveSellerData(user.uid, sellerData);
@@ -28,7 +39,7 @@ class AuthViewModel {
     }
   }
 
-  /// **Pendaftaran Pelanggan**
+  /// *Pendaftaran Pelanggan*
   Future<void> registerCustomer({
     required String fullName,
     required String email,
@@ -54,15 +65,8 @@ class AuthViewModel {
       rethrow;
     }
   }
-Future<Map<String, dynamic>> getUserData(String uid) async {
-    try {
-      final doc = await FirebaseFirestore.instance.collection('customers').doc(uid).get();
-      return doc.data() ?? {};
-    } catch (e) {
-      throw 'Gagal mengambil data pengguna: $e';
-    }
-  }
-  /// **Login untuk Penjual dan Pelanggan**
+
+  /// *Login untuk Penjual dan Pelanggan*
   Future<String> login(String email, String password) async {
     try {
       final user = await _authService.loginWithEmailAndPassword(email, password);
@@ -71,8 +75,12 @@ Future<Map<String, dynamic>> getUserData(String uid) async {
         final userData = await _firebaseService.getUserData(user.uid);
 
         if (userData['role'] == 'seller') {
-          print("Login sebagai penjual berhasil: ${user.uid}");
-          return 'seller';
+          if (userData['verified'] == true) {
+            print("Login sebagai penjual berhasil: ${user.uid}");
+            return 'seller';
+          } else {
+            throw 'Akun Anda belum diverifikasi oleh admin.';
+          }
         } else if (userData['role'] == 'customer') {
           print("Login sebagai pelanggan berhasil: ${user.uid}");
           return 'customer';
@@ -87,5 +95,4 @@ Future<Map<String, dynamic>> getUserData(String uid) async {
       rethrow;
     }
   }
-  
 }

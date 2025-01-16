@@ -132,8 +132,18 @@ class _SellerReviewScreenState extends State<SellerReviewScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF114232),
-        title: const Text('Ulasan Pembeli'),
+        title: const Text('Ulasan Pembeli',style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Column(
         children: [

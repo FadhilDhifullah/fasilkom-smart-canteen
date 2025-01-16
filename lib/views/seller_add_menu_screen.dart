@@ -160,11 +160,10 @@ class _AddMenuScreenState extends State<AddMenuScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
+       
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Stack(

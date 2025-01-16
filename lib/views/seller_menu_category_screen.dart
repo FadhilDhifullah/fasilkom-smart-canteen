@@ -17,28 +17,27 @@ class SellerMenuCategoryScreen extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
+        centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            _buildCategoryItem(context, 'Aneka Nasi'),
-            _buildCategoryItem(context, 'Mie dan Bakso'),
-            _buildCategoryItem(context, 'Camilan'),
-            _buildCategoryItem(context, 'Minuman'),
+            _buildCategoryItem(context, 'Aneka Nasi', 'assets/images/aneka_nasi.png'),
+            _buildCategoryItem(context, 'Mie dan Bakso', 'assets/images/mie_bakso.png'),
+            _buildCategoryItem(context, 'Camilan', 'assets/images/camilan.png'),
+            _buildCategoryItem(context, 'Minuman', 'assets/images/minuman.png'),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCategoryItem(BuildContext context, String categoryName) {
+  Widget _buildCategoryItem(BuildContext context, String categoryName, String imagePath) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -57,12 +56,13 @@ class SellerMenuCategoryScreen extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.grey,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(25.0), // Membuat gambar berbentuk lingkaran
+              child: Image.asset(
+                imagePath,
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
               ),
             ),
             const SizedBox(width: 16),

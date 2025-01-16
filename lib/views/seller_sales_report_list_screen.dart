@@ -14,7 +14,11 @@ class SellerSalesReportListScreen extends StatelessWidget {
         backgroundColor: const Color(0xFF0A5744), // Hijau tua
         title: const Text(
           'Daftar Penjualan',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
         leading: IconButton(

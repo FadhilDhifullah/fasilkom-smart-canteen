@@ -120,6 +120,23 @@ class FirebaseService {
       throw 'Gagal mendapatkan data penjual untuk UID: $uid, Error: $e';
     }
   }
+  /// **Perbarui URL gambar penjual (sellers)**
+  Future<void> updateSellerImage(String uid, String imageUrl) async {
+    try {
+      await _firestore.collection('sellers').doc(uid).update({'imageUrl': imageUrl});
+    } catch (e) {
+      throw 'Gagal memperbarui gambar penjual: $e';
+    }
+  }
+
+  /// **Perbarui URL gambar outlet**
+  Future<void> updateOutletImage(String uid, String imageUrl) async {
+    try {
+      await _firestore.collection('outlets').doc(uid).update({'imageUrl': imageUrl});
+    } catch (e) {
+      throw 'Gagal memperbarui gambar outlet: $e';
+    }
+  }
 
   /// **Perbarui data transaksi penjual**
   Future<void> updateTransactionData(String uid, int transactionCount, double dailyIncome) async {

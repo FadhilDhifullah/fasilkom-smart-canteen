@@ -34,11 +34,10 @@ class _CustomerCartScreenState extends State<CustomerCartScreen> {
             color: Colors.white,
          )
         ),
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(

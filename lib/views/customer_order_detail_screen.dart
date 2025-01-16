@@ -151,12 +151,10 @@ Future<void> _moveCartToOrders() async {
               color: Colors.white,
               fontWeight: FontWeight.bold,)),
         backgroundColor: const Color(0xFF20452C),
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () async {
-            await _cancelOrders();
-            Navigator.pop(context);
-          },
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: isLoading

@@ -48,53 +48,64 @@ class _CanteenSellerRegistrationScreenState
   }
 
   Future<String?> _uploadImage(File image) async {
-    try {
-      final fileName = DateTime.now().millisecondsSinceEpoch.toString();
-      final storageRef =
-          FirebaseStorage.instance.ref().child('canteen_images/$fileName');
-      final uploadTask = storageRef.putFile(image);
-      final snapshot = await uploadTask.whenComplete(() {});
-      return await snapshot.ref.getDownloadURL();
-    } catch (e) {
-      return null;
-    }
+  try {
+    final fileName = DateTime.now().millisecondsSinceEpoch.toString();
+    final storageRef = FirebaseStorage.instance.ref().child('canteen_images/$fileName');
+    final uploadTask = storageRef.putFile(image);
+
+    final snapshot = await uploadTask.whenComplete(() {
+      print("Unggahan selesai.");
+    });
+
+    final downloadUrl = await snapshot.ref.getDownloadURL();
+    print("URL Gambar: $downloadUrl");
+    return downloadUrl;
+  } catch (e) {
+    print("Error saat mengunggah gambar: $e");
+    return null;
   }
+}
+
 
   Future<void> _registerSeller() async {
-    if (_formKey.currentState!.validate() && _imageFile != null) {
+  if (_formKey.currentState!.validate() && _imageFile != null) {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final imageUrl = await _uploadImage(_imageFile!);
+      if (imageUrl == null) {
+        throw "Gagal mengunggah gambar.";
+      }
+
+      SellerModel seller = SellerModel(
+        canteenName: _canteenNameController.text.trim(),
+        email: _emailController.text.trim(),
+        address: _addressController.text.trim(),
+        description: _descriptionController.text.trim(),
+        imageUrl: imageUrl,
+      );
+
+      await _authViewModel.registerSeller(seller, _passwordController.text.trim());
+      print("Registrasi berhasil");
+      _showSuccessDialog();
+    } catch (e) {
+      print("Error saat registrasi: $e");
+      _showErrorDialog(e.toString());
+    } finally {
       setState(() {
-        _isLoading = true;
+        _isLoading = false;
       });
-
-      try {
-        final imageUrl = await _uploadImage(_imageFile!);
-        if (imageUrl == null) {
-          throw "Gagal mengunggah gambar.";
-        }
-
-        SellerModel seller = SellerModel(
-          canteenName: _canteenNameController.text.trim(),
-          email: _emailController.text.trim(),
-          address: _addressController.text.trim(),
-          description: _descriptionController.text.trim(),
-          imageUrl: imageUrl,
-        );
-
-        await _authViewModel.registerSeller(seller, _passwordController.text.trim());
-        _showSuccessDialog();
-      } catch (e) {
-        _showErrorDialog(e.toString());
-      } finally {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    } else {
-      if (_imageFile == null) {
-        _showErrorDialog("Silakan unggah gambar terlebih dahulu.");
-      }
+    }
+  } else {
+    if (_imageFile == null) {
+      print("Error: Gambar belum dipilih.");
+      _showErrorDialog("Silakan unggah gambar terlebih dahulu.");
     }
   }
+}
+
 
   void _showSuccessDialog() {
     showDialog(

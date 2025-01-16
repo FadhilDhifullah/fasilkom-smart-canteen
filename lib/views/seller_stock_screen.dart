@@ -115,11 +115,10 @@ class _SellerStockScreenState extends State<SellerStockScreen> {
           'Pengelolaan Stok',
           style: TextStyle(color: Colors.white),
         ),
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SingleChildScrollView(

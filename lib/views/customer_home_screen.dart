@@ -211,6 +211,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             },
           ),
         ],
+        automaticallyImplyLeading: false,
       ),
       body: SingleChildScrollView(
         child: Column(
