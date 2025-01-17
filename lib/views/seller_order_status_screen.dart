@@ -53,132 +53,225 @@ class _SellerOrderStatusScreenState extends State<SellerOrderStatusScreen>
       ),
     );
   }
-
-  Widget _buildStatusCard(OrderStatusModel order) {
-    final hasItems = order.items.isNotEmpty;
-    final firstItem = hasItems ? order.items.first : null;
-
-    return Card(
-      elevation: 3,
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (hasItems) ...[
-              Row(
-                children: [
-                  Image.network(
-                    firstItem?['imageUrl'] ?? 'https://via.placeholder.com/150',
-                    width: 50,
-                    height: 50,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const Icon(Icons.error),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          firstItem?['menuName'] ?? 'Nama Tidak Diketahui',
-                          style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          'Nama Pembeli: ${order.customerName ?? 'Tidak Diketahui'}',
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-            ] else
-              const Text(
-                'Tidak ada item dalam pesanan.',
-                style: TextStyle(fontSize: 14, color: Colors.red),
-              ),
-            Text(
-              'Status: ${order.status}',
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-            if (order.proofImageUrl != null &&
-                order.paymentMethod == 'QRIS' &&
-                order.status == 'Menunggu Konfirmasi Penjual')
-              ElevatedButton(
-                onPressed: () => _showProofImage(order.proofImageUrl),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey.shade300,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+void _showFullOrderDetails(OrderStatusModel order) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Detail Pesanan',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                child: const Text('Lihat Bukti Pembayaran',
-                    style: TextStyle(color: Colors.black)),
-              ),
-            Row(
-              children: [
-                if (order.status == 'Menunggu Konfirmasi Penjual')
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () =>
-                          _viewModel.updateOrderStatus(order.orderId, 'Dalam Proses'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text('Konfirmasi',
-                          style: TextStyle(color: Colors.white)),
+                const SizedBox(height: 16),
+                ...order.items.map((item) {
+                  return ListTile(
+                    leading: Image.network(
+                      item['imageUrl'] ?? 'https://via.placeholder.com/150',
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.cover,
                     ),
-                  ),
-                if (order.status == 'Dalam Proses')
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () =>
-                          _viewModel.updateOrderStatus(order.orderId, 'Selesai'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text('Selesai',
-                          style: TextStyle(color: Colors.white)),
+                    title: Text(item['menuName'] ?? 'Menu Tidak Diketahui'),
+                    subtitle: Text('Jumlah: ${item['quantity']}'),
+                    trailing: Text(
+                      'Rp ${(item['price'] * item['quantity']).toStringAsFixed(0)}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                  ),
-                const SizedBox(width: 8),
-                if ((order.status == 'Menunggu Konfirmasi Penjual' ||
-                    order.status == 'Dalam Proses') &&
-                    order.status != 'Selesai')
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () =>
-                          _viewModel.updateOrderStatus(order.orderId, 'Batal'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                  );
+                }).toList(),
+                const SizedBox(height: 16),
+                Text(
+                  'Catatan: ${order.items.first['notes'] ?? 'Tidak ada catatan'}',
+                  style: const TextStyle(fontSize: 14, color: Colors.black87),
+                ),
+                const SizedBox(height: 16),
+                Center(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFFA31D),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Text('Batalkan',
-                          style: TextStyle(color: Colors.white)),
                     ),
+                    child: const Text('Tutup', style: TextStyle(color: Colors.white)),
                   ),
+                ),
               ],
             ),
-          ],
+          ),
         ),
+      );
+    },
+  );
+}
+
+ Widget _buildStatusCard(OrderStatusModel order) {
+  final hasItems = order.items.isNotEmpty;
+  final firstItem = hasItems ? order.items.first : null;
+
+  return Card(
+    elevation: 3,
+    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (hasItems) ...[
+            Row(
+              children: [
+                Image.network(
+                  firstItem?['imageUrl'] ?? 'https://via.placeholder.com/150',
+                  width: 50,
+                  height: 50,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.error),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        firstItem?['menuName'] ?? 'Nama Tidak Diketahui',
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Nama Pembeli: ${order.customerName ?? 'Tidak Diketahui'}',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ] else
+            const Text(
+              'Tidak ada item dalam pesanan.',
+              style: TextStyle(fontSize: 14, color: Colors.red),
+            ),
+          Text(
+            'Status: ${order.status}',
+            style: const TextStyle(fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+          // Catatan Pembeli
+          if (order.items.first.containsKey('notes') &&
+              order.items.first['notes'].isNotEmpty)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Catatan: ${order.items.first['notes']}',
+                style: const TextStyle(fontSize: 14, color: Colors.black87),
+              ),
+            ),
+          const SizedBox(height: 8),
+          // Tombol Lihat Selengkapnya
+          ElevatedButton(
+            onPressed: () => _showFullOrderDetails(order),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.grey.shade300,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Lihat Selengkapnya',
+              style: TextStyle(color: Colors.black),
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (order.proofImageUrl != null &&
+              order.paymentMethod == 'QRIS' &&
+              order.status == 'Menunggu Konfirmasi Penjual')
+            ElevatedButton(
+              onPressed: () => _showProofImage(order.proofImageUrl),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey.shade300,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Lihat Bukti Pembayaran',
+                  style: TextStyle(color: Colors.black)),
+            ),
+          Row(
+            children: [
+              if (order.status == 'Menunggu Konfirmasi Penjual')
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () =>
+                        _viewModel.updateOrderStatus(order.orderId, 'Dalam Proses'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Konfirmasi',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+              if (order.status == 'Dalam Proses')
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () =>
+                        _viewModel.updateOrderStatus(order.orderId, 'Selesai'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Selesai',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+              const SizedBox(width: 8),
+              if ((order.status == 'Menunggu Konfirmasi Penjual' ||
+                  order.status == 'Dalam Proses') &&
+                  order.status != 'Selesai')
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () =>
+                        _viewModel.updateOrderStatus(order.orderId, 'Batal'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Batalkan',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildOrderList(String status) {
     return RefreshIndicator(
